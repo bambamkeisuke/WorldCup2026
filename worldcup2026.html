@@ -115,6 +115,10 @@ h1 .jst{font-size:10.5px;color:var(--cyan);border:1px solid rgba(125,240,255,.4)
 }
 .mode-switch button.on.pred{background:linear-gradient(135deg,#62b6ff,#2f7fe0);color:#041022;box-shadow:0 2px 18px rgba(77,171,255,.5)}
 .mode-switch button.on.actual{background:linear-gradient(135deg,#3df0a2,#13b86e);color:#02180d;box-shadow:0 2px 18px rgba(30,231,142,.45)}
+.mode-toggle{display:inline-flex;align-items:center;gap:0;background:transparent;color:var(--sub);border:1px solid var(--line);border-radius:99px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;transition:all .2s}
+.mode-toggle .ico{width:14px;height:14px;margin-right:6px;opacity:.85}
+.mode-toggle:hover{color:var(--text);border-color:rgba(125,240,255,.5)}
+.mode-toggle.active{background:linear-gradient(135deg,#3df0a2,#13b86e);color:#02180d;border-color:transparent;box-shadow:0 2px 16px rgba(59,255,176,.45)}
 #warn-banner{display:none}
 .warn-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 22px;font-size:13px;color:#ffd9a6;
   background:linear-gradient(180deg,rgba(255,120,90,.22),rgba(255,90,140,.12));border-bottom:1px solid rgba(255,150,90,.4);
@@ -202,8 +206,13 @@ img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-alig
 .third-chip .rank{color:var(--sub);font-size:10px;margin-right:4px}
 .hint{font-size:12px;color:var(--sub);margin:6px 0 12px;line-height:1.8}
 /* bracket */
-.bracket-wrap{overflow-x:auto;padding-bottom:10px}
-.bracket{display:flex;gap:22px;min-width:1280px;position:relative}
+.bracket-wrap{overflow:auto;max-height:74vh;padding-bottom:10px;cursor:grab;position:relative;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.bracket-wrap.grabbing{cursor:grabbing;user-select:none}
+.bracket-sizer{position:relative}
+.bracket{display:flex;gap:22px;min-width:1280px;position:relative;transform-origin:0 0;will-change:transform}
+.zoom-ctrl{display:inline-flex;gap:4px;margin:0 0 8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px}
+.zoom-ctrl button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:7px;min-width:34px;padding:5px 8px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--disp);transition:all .15s}
+.zoom-ctrl button:hover{border-color:rgba(125,240,255,.6);box-shadow:0 0 12px rgba(125,240,255,.2)}
 svg.bracket-svg{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:visible}
 .bracket-line{fill:none;stroke:#7df0ff;stroke-width:1.5;opacity:.42;stroke-dasharray:5 8;
   animation:flowDash .9s linear infinite;filter:drop-shadow(0 0 3px rgba(125,240,255,.7))}
@@ -435,10 +444,7 @@ details.share-fallback[open]>summary{margin-bottom:10px}
         <span class="dot" id="player-dot"></span><span id="player-name">あなた</span>
         <span class="coins" id="player-coins">🪙 1000</span>
       </div>
-      <div class="mode-switch" title="予想（メイン）と実際の結果を切り替え">
-        <button id="mode-pred" class="pred" onclick="setMode('pred')">PREDICT</button>
-        <button id="mode-actual" class="actual" onclick="setMode('actual')">RESULTS</button>
-      </div>
+      <button id="mode-toggle" class="mode-toggle" onclick="toggleMode()" title="予想（メイン）と実際の結果を切り替え"></button>
     </div>
   </div>
   <div class="topbar">
@@ -991,6 +997,7 @@ function slotLabelHTML(track,m,side){
 
 /* ============ 操作 ============ */
 function setMode(m){ ui.mode=m; render(); }
+function toggleMode(){ setMode(ui.mode==="pred"?"actual":"pred"); }
 function setTab(t){ ui.tab=t; render(); }
 function setGroupScore(n, side, val){
   if(ui.mode!=="pred") return;
@@ -1329,12 +1336,17 @@ function updatePlayerChip(){
 function render(){
   clearMemo();
   updatePlayerChip();
-  document.getElementById("mode-pred").classList.toggle("on", ui.mode==="pred");
-  document.getElementById("mode-actual").classList.toggle("on", ui.mode==="actual");
+  const mt = document.getElementById("mode-toggle");
+  if(mt){
+    const isActual = ui.mode==="actual";
+    mt.classList.toggle("active", isActual);
+    mt.innerHTML = isActual
+      ? '<svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>予想に戻る'
+      : '<svg class="ico" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>結果を見る';
+    mt.style.visibility = ui.tab==="league" ? "hidden" : "";
+  }
   ["groups","ko","cmp","league"].forEach(t=>document.getElementById("tab-"+t).classList.toggle("on", ui.tab===t));
   const liveDot=document.getElementById("rivals-live"); if(liveDot) liveDot.classList.toggle("on", typeof syncOnline==="function" && syncOnline());
-  const modeSwitch = document.querySelector(".mode-switch");
-  if(modeSwitch) modeSwitch.style.visibility = ui.tab==="league" ? "hidden" : "";
   document.getElementById("btn-random").style.display = (ui.mode==="pred" && ui.tab!=="league") ? "" : "none";
   const mb = document.getElementById("modebanner");
   const mbText = ui.tab==="league" ? ""
@@ -1347,7 +1359,7 @@ function render(){
     return;
   }
   if(ui.tab==="groups") app.innerHTML = renderGroups();
-  else if(ui.tab==="ko"){ app.innerHTML = renderKO(); drawBracketLines(); setTimeout(drawBracketLines, 260); }
+  else if(ui.tab==="ko"){ app.innerHTML = renderKO(); _koNatW=0; applyKoZoom(_koZoom,false); setTimeout(()=>{_koNatW=0;applyKoZoom(_koZoom,false);}, 260); }
   else if(ui.tab==="league") app.innerHTML = renderLeague();
   else app.innerHTML = renderCmp();
   if(typeof refreshWarnings==="function") refreshWarnings();
@@ -1527,26 +1539,31 @@ function renderKO(){
     ["ラウンド32", DATA.r32], ["ラウンド16", DATA.r16],
     ["準々決勝", DATA.qf], ["準決勝", DATA.sf], ["決勝・3位決定戦", [DATA.final, DATA.thirdPlace]]
   ];
+  const roundsEn = [
+    ["ROUND OF 32", DATA.r32], ["ROUND OF 16", DATA.r16],
+    ["QUARTER-FINALS", DATA.qf], ["SEMI-FINALS", DATA.sf], ["FINAL · 3RD PLACE", [DATA.final, DATA.thirdPlace]]
+  ];
   let html = `<p class="hint">${track==="pred"
-    ? "🔮 勝ち上がると思うチームをクリックして選択。グループ予想を変更すると、ここの組み合わせも自動で更新され、選択済みの予想は枠単位で引き継がれます。"
-    : "📊 実際のトーナメント結果（自動取得・閲覧専用）。グループステージの結果が揃うと組み合わせが確定し、終了した試合から勝ち上がりが反映されます。"}</p>`;
-  html += '<div class="bracket-wrap"><div class="bracket">';
-  for(const [title, ms] of rounds){
+    ? "勝ち上がると思うチームをクリック。グループ予想を変えると組み合わせも自動更新され、選択は枠単位で引き継がれます。"
+    : "実際のトーナメント結果（自動取得・閲覧専用）。結果が揃うと組み合わせが確定し、勝ち上がりが反映されます。"}　🖐 ドラッグで移動／ ＋− で拡大縮小。</p>`;
+  html += '<div class="zoom-ctrl"><button onclick="zoomKo(-0.15)" title="縮小">－</button><button onclick="fitKo()" title="全体表示">FIT</button><button onclick="zoomKo(0.15)" title="拡大">＋</button></div>';
+  html += '<div class="bracket-wrap" id="bracket-wrap"><div class="bracket-sizer" id="bracket-sizer"><div class="bracket">';
+  for(const [title, ms] of roundsEn){
     html += `<div class="round"><h4>${title}</h4><div class="matches">`;
     for(const m of ms) html += koCard(m, track);
-    if(title==="決勝・3位決定戦"){
+    if(title==="FINAL · 3RD PLACE"){
       const champ = koWinner(track, DATA.final.n);
       if(champ){
-        html += `<div class="champion"><div class="t">${track==="pred"?"🏆 優勝予想":"🏆 優勝"}</div><div class="nm">${teamHTML(champ)}</div></div>`;
+        html += `<div class="champion"><div class="t">🏆 ${track==="pred"?"CHAMPION (予想)":"CHAMPION"}</div><div class="nm">${teamHTML(champ)}</div></div>`;
       }
       const third = koWinner(track, DATA.thirdPlace.n);
       if(third){
-        html += `<div class="champion" style="border-color:var(--sub)"><div class="t">🥉 3位${track==="pred"?"予想":""}</div><div class="nm">${teamHTML(third)}</div></div>`;
+        html += `<div class="champion" style="border-color:var(--sub)"><div class="t">🥉 3RD${track==="pred"?" (予想)":""}</div><div class="nm">${teamHTML(third)}</div></div>`;
       }
     }
     html += '</div></div>';
   }
-  html += '</div></div>';
+  html += '</div></div></div>';
   return html;
 }
 
@@ -1984,8 +2001,9 @@ function drawBracketLines(){
   const cards={};
   bracket.querySelectorAll(".ko-card[data-n]").forEach(c=>cards[c.getAttribute("data-n")]=c);
   const br=bracket.getBoundingClientRect();
+  const z = bracket.offsetWidth ? (br.width/bracket.offsetWidth) : 1;   // 現在の拡大率を補正
   const at=(el,right)=>{ const r=el.getBoundingClientRect();
-    return {x:(right?r.right:r.left)-br.left+bracket.scrollLeft, y:r.top+r.height/2-br.top+bracket.scrollTop}; };
+    return {x:((right?r.right:r.left)-br.left)/z, y:(r.top+r.height/2-br.top)/z}; };
   const ns="http://www.w3.org/2000/svg"; let i=0;
   for(const n in cards){
     const m=DATA.koByN[n]; if(!m) continue;
@@ -2002,7 +2020,49 @@ function drawBracketLines(){
   }
 }
 let _blTimer=null;
-addEventListener("resize",()=>{ if(ui.tab==="ko"){ clearTimeout(_blTimer); _blTimer=setTimeout(drawBracketLines,120); } });
+addEventListener("resize",()=>{ if(ui.tab==="ko"){ clearTimeout(_blTimer); _blTimer=setTimeout(()=>{drawBracketLines();fitKo(true);},120); } });
+
+/* ===== ブラケットの拡大縮小＆ドラッグ移動 ===== */
+let _koZoom=1, _koNatW=0, _koNatH=0;
+function applyKoZoom(z, keepCenter){
+  const bracket=document.querySelector(".bracket"), sizer=document.getElementById("bracket-sizer"), wrap=document.getElementById("bracket-wrap");
+  if(!bracket||!sizer||!wrap) return;
+  if(!_koNatW){ _koNatW=bracket.offsetWidth; _koNatH=bracket.offsetHeight; }
+  z=Math.max(0.4, Math.min(1.8, z));
+  const wrapW=wrap.clientWidth, wrapH=wrap.clientHeight;
+  // ズーム前の中心位置（コンテンツ座標）
+  const cx=(wrap.scrollLeft + wrapW/2)/_koZoom, cy=(wrap.scrollTop + wrapH/2)/_koZoom;
+  _koZoom=z;
+  bracket.style.transformOrigin="0 0";
+  bracket.style.transform=`scale(${z})`;
+  sizer.style.width=(_koNatW*z)+"px"; sizer.style.height=(_koNatH*z)+"px";
+  if(keepCenter!==false){ wrap.scrollLeft=cx*z - wrapW/2; wrap.scrollTop=cy*z - wrapH/2; }
+  drawBracketLines();
+}
+function zoomKo(d){ applyKoZoom(_koZoom+d); }
+function fitKo(silent){
+  const bracket=document.querySelector(".bracket"), wrap=document.getElementById("bracket-wrap");
+  if(!bracket||!wrap) return;
+  if(!_koNatW){ _koNatW=bracket.offsetWidth; _koNatH=bracket.offsetHeight; }
+  const z=Math.max(0.4, Math.min(1, (wrap.clientWidth-8)/_koNatW));
+  applyKoZoom(z,false);
+  wrap.scrollLeft=0; wrap.scrollTop=0;
+}
+// ドラッグでパン
+let _panActive=false,_panX=0,_panY=0,_panSL=0,_panST=0;
+document.addEventListener("pointerdown",e=>{
+  const wrap=e.target.closest && e.target.closest("#bracket-wrap");
+  if(!wrap) return;
+  if(e.target.closest(".ko-team.clickable")||e.target.closest(".zoom-ctrl")||e.target.closest("input,button")) return;
+  _panActive=true; _panX=e.clientX;_panY=e.clientY;_panSL=wrap.scrollLeft;_panST=wrap.scrollTop;
+  wrap.classList.add("grabbing");
+});
+document.addEventListener("pointermove",e=>{
+  if(!_panActive) return;
+  const wrap=document.getElementById("bracket-wrap"); if(!wrap) return;
+  wrap.scrollLeft=_panSL-(e.clientX-_panX); wrap.scrollTop=_panST-(e.clientY-_panY);
+});
+document.addEventListener("pointerup",()=>{ if(_panActive){_panActive=false; const w=document.getElementById("bracket-wrap"); if(w)w.classList.remove("grabbing");} });
 
 /* ============ 次の試合カウントダウン（JST） ============ */
 function allMatchesByTime(){
