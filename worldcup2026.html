@@ -201,6 +201,17 @@ img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-alig
 .coin-up{color:var(--green);font-weight:700}
 .coin-dn{color:var(--red);font-weight:700}
 .frank{font-size:9.5px;color:var(--sub);margin-left:5px;font-family:var(--disp);letter-spacing:.5px;opacity:.8}
+.pav{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1.5px solid var(--pc,#94a4c9);background:#0a0c18;line-height:1;flex:0 0 auto;vertical-align:middle;box-shadow:0 0 8px -2px var(--pc,#94a4c9)}
+.pav.empty{background:var(--pc,#94a4c9)}
+.prof-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.prof-meta{display:flex;flex-direction:column;gap:8px;min-width:0}
+.prof-name{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit}
+.prof-name:hover{border-color:rgba(125,240,255,.6)}
+.avatar-pick{display:flex;flex-wrap:wrap;gap:5px}
+.avatar-pick button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:16px;line-height:1;transition:all .15s;display:inline-flex;align-items:center;justify-content:center}
+.avatar-pick button:hover{border-color:rgba(125,240,255,.6);transform:translateY(-1px)}
+.avatar-pick button.on{border-color:var(--cyan);box-shadow:0 0 12px rgba(125,240,255,.4);background:rgba(125,240,255,.12)}
+.avatar-pick .av-custom{color:var(--sub);font-family:var(--disp);font-size:18px}
 .thirds-panel{
   background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 18px;margin-top:16px;
   position:relative;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
@@ -732,6 +743,7 @@ const ROOM_CONFIG = {
   appId: "1:880504374677:web:84150682eea8b18663a29c"
 };
 const PLAYER_COLORS = ["#4dabff","#1ee78e","#ffd166","#ff5d7a","#b388ff","#ff9f43","#4dd0e1","#f06292","#9ccc65","#ffca28"];
+const AVATAR_SET = ["⚽","🏆","🔥","⭐","👑","🦊","🐯","🦁","🐉","🦅","🚀","⚡","💎","🎯","🍀","😎","🤖","🐺","🦄","🐼"];
 function uid(){ return "p" + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36); }
 /* ===== セキュリティ：サニタイズ用ヘルパー ===== */
 const _ESC = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
@@ -763,10 +775,16 @@ function cleanBets(src){
       if(o.side==="home"||o.side==="away") e.side=o.side; out.ko[n]=e; } }
   return out;
 }
+function sanitizeAvatar(s){ return String(s==null?"":s).replace(/[<>"'&]/g,"").trim().slice(0,4); }
 function cleanIncomingPlayer(raw){
   const id=safeId(raw&&raw.id); if(!id) return null;
-  return {id, name:sanitizeName(raw&&raw.name), color:safeColor(raw&&raw.color),
+  return {id, name:sanitizeName(raw&&raw.name), color:safeColor(raw&&raw.color), avatar:sanitizeAvatar(raw&&raw.avatar),
     pred:cleanPred(raw&&raw.pred), bets:cleanBets(raw&&raw.bets), ts:Number(raw&&raw.ts)||0};
+}
+/* 円形アバター（絵文字 or 色ドット） */
+function avatarHTML(p, size){
+  const col=safeColor(p&&p.color), av=sanitizeAvatar(p&&p.avatar), s=size||18;
+  return `<span class="pav ${av?"":"empty"}" style="--pc:${col};width:${s}px;height:${s}px;font-size:${Math.round(s*0.6)}px">${av?esc(av):""}</span>`;
 }
 let state = {
   pred:{group:{},ko:{}},      // 自分の予想（計算エンジンが参照）
@@ -784,6 +802,7 @@ function ensureLeague(){
   if(!state.me) state.me = {id:null, name:"", color:PLAYER_COLORS[0]};
   if(!state.me.id){ state.me.id = uid(); }
   if(!state.me.color) state.me.color = PLAYER_COLORS[0];
+  if(typeof state.me.avatar!=="string") state.me.avatar = "";
   if(!state.room) state.room = {code:"", fb:null};
   if(!state.players) state.players = {};
   if(!Array.isArray(state.celebratedHits)) state.celebratedHits = [];
@@ -820,7 +839,7 @@ function save(){
 }
 /* 自分を1プレイヤーとして表現したスナップショット */
 function meSnapshot(){
-  return {id:state.me.id, name:state.me.name||"あなた", color:state.me.color,
+  return {id:state.me.id, name:state.me.name||"あなた", color:state.me.color, avatar:state.me.avatar||"",
           pred:state.pred, bets:state.bets, ts:Date.now(), self:true};
 }
 /* 順位表などで使う全プレイヤー（自分＋友達） */
@@ -1200,6 +1219,11 @@ function editName(){
   state.me.name = nm.trim() ? sanitizeName(nm).slice(0,16) : "";
   save(); render();
 }
+function setAvatar(e){ state.me.avatar = sanitizeAvatar(e); save(); render(); }
+function editAvatar(){
+  const v = prompt("好きな絵文字を1つ入力してください（例: 🦊 ⚽ 🔥）：", state.me.avatar||"");
+  if(v===null) return; state.me.avatar = sanitizeAvatar(v); save(); render();
+}
 function randomFill(){
   if(ui.mode!=="pred"){ alert("ランダム埋めは予想モードで使用できます。"); return; }
   for(const m of DATA.groupMatches){
@@ -1336,7 +1360,11 @@ function updatePlayerChip(){
   const nm = document.getElementById("player-name");
   const co = document.getElementById("player-coins");
   if(!dot) return;
-  dot.style.background = safeColor(state.me.color);
+  const col = safeColor(state.me.color);
+  dot.className = "pav " + (state.me.avatar ? "" : "empty");
+  dot.style.setProperty("--pc", col);
+  dot.style.width="22px"; dot.style.height="22px"; dot.style.fontSize="13px";
+  dot.textContent = state.me.avatar || "";
   nm.textContent = state.me.name || "あなた（名前未設定）";
   const t = tallyCoins(meSnapshot());
   co.innerHTML = `🪙 ${t.balance}` + (t.locked>0 ? ` <span class="lk">(賭け中 ${t.locked})</span>` : "");
@@ -1762,6 +1790,13 @@ function renderLeague(){
 
   let html = '<div class="league-wrap">';
 
+  // プロフィール（名前・アイコン）
+  html += '<div class="league-section"><h3>👤 あなたのプロフィール</h3>';
+  html += `<div class="prof-row">${avatarHTML(meSnapshot(),48)}<div class="prof-meta">`;
+  html += `<button class="prof-name" onclick="editName()">${esc(state.me.name)||"＋ 名前を設定"}</button>`;
+  html += `<div class="avatar-pick">${AVATAR_SET.map(e=>`<button class="${state.me.avatar===e?"on":""}" onclick="setAvatar('${e}')">${e}</button>`).join("")}<button class="av-custom" onclick="editAvatar()" title="自由入力">＋</button>${state.me.avatar?`<button class="av-custom" onclick="setAvatar('')" title="アイコンなし">✕</button>`:""}</div>`;
+  html += `</div></div></div>`;
+
   // 順位表
   html += '<div class="league-section"><h3>🏆 リーグ順位表</h3>';
   html += `<p class="hint" style="margin-bottom:10px">全員${START_COINS}🪙スタート。オッズ付きベットの損益で勝負。並びは<b>コイン残高</b>順（同額は予想得点で比較）。${friendCount===0?"　▶ 下の<b>「友達と一緒に遊ぶ（オンライン）」</b>で合言葉を入れれば、友達と同じリーグで対戦できます。":""}</p>`;
@@ -1773,7 +1808,7 @@ function renderLeague(){
     const diffHTML = diff===0?"":` <span class="${diff>0?"up":"dn"}">${diff>0?"+":""}${diff}</span>`;
     html += `<tr class="${isMe?"me":""}">
       <td><span class="rk">${rankMedal(i)}</span></td>
-      <td class="l"><span class="pname"><span class="pdot" style="color:${safeColor(r.p.color)};background:${safeColor(r.p.color)}"></span>${esc(r.p.name)||"名無し"}${isMe?" <span style='color:var(--sub);font-weight:400'>(あなた)</span>":""}</span></td>
+      <td class="l"><span class="pname">${avatarHTML(r.p,20)}${esc(r.p.name)||"名無し"}${isMe?" <span style='color:var(--sub);font-weight:400'>(あなた)</span>":""}</span></td>
       <td><span class="coin">${st.balance}</span>${diffHTML}</td>
       <td>${st.locked>0?st.locked:"—"}</td>
       <td>${st.settledCount>0?Math.round(st.hitRate*100)+"%":"—"}<span style="color:var(--sub);font-size:10px"> ${st.settledCount>0?`(${st.hits}/${st.settledCount})`:""}</span></td>
@@ -1792,7 +1827,7 @@ function renderLeague(){
     html += '<div class="friend-tabs">';
     players.forEach(p=>{
       if(p.self) return;
-      html += `<button class="${ui.viewPlayer===safeId(p.id)?"on":""}" onclick="viewFriend('${safeId(p.id)}')">${esc(p.name)||"フレンド"}</button>`;
+      html += `<button class="${ui.viewPlayer===safeId(p.id)?"on":""}" onclick="viewFriend('${safeId(p.id)}')">${avatarHTML(p,16)} ${esc(p.name)||"フレンド"}</button>`;
     });
     html += '</div>';
     const vp = ui.viewPlayer && state.players[ui.viewPlayer] ? allPlayers().find(p=>p.id===ui.viewPlayer) : null;
@@ -2245,10 +2280,16 @@ async function startSync(){
 }
 async function syncPush(){
   if(!_sync.ready || !_sync.db) return;
-  try{ const {fs,db}=_sync;
-    await fs.setDoc(fs.doc(db,"rooms",state.room.code,"players",state.me.id),
-      {id:state.me.id,name:state.me.name||"あなた",color:state.me.color,pred:state.pred,bets:state.bets,ts:Date.now()});
-  }catch(e){ console.warn("push",e); }
+  const {fs,db}=_sync;
+  const ref=fs.doc(db,"rooms",state.room.code,"players",state.me.id);
+  const base={id:state.me.id,name:state.me.name||"あなた",color:state.me.color,pred:state.pred,bets:state.bets,ts:Date.now()};
+  const doc = state.me.avatar ? {...base, avatar:sanitizeAvatar(state.me.avatar)} : base;
+  try{ await fs.setDoc(ref, doc); }
+  catch(e){
+    // ルール未更新でavatarが弾かれても、予想同期は死守（avatarなしで再送）
+    if(state.me.avatar){ try{ await fs.setDoc(ref, base); }catch(e2){ console.warn("push",e2); } }
+    else console.warn("push",e);
+  }
 }
 function initSync(){ if(roomEnabled() && state.room && state.room.code) startSync().catch(e=>console.warn("auto-sync",e)); }
 async function joinRoom(){
