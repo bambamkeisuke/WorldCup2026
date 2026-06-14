@@ -1,0 +1,6 @@
+# 公開するのは worldcup2026.html と README のみ。
+# それ以外（作業用ファイル・.claude設定など）は公開しない。
+/*
+!.gitignore
+!README.md
+!worldcup2026.html

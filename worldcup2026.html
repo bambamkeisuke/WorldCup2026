@@ -588,6 +588,41 @@ const LS_KEY = "wc2026sim_v1";
 const START_COINS = 1000;
 const PLAYER_COLORS = ["#4dabff","#1ee78e","#ffd166","#ff5d7a","#b388ff","#ff9f43","#4dd0e1","#f06292","#9ccc65","#ffca28"];
 function uid(){ return "p" + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36); }
+/* ===== セキュリティ：サニタイズ用ヘルパー ===== */
+const _ESC = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>_ESC[c]); }
+function safeColor(c){ return /^#[0-9a-fA-F]{3,8}$/.test(String(c||"")) ? c : "#94a4c9"; }
+function safeId(id){ return /^[A-Za-z0-9_-]{1,64}$/.test(String(id||"")) ? String(id) : ""; }
+function sanitizeName(s){ return (String(s==null?"":s).replace(/[\x00-\x1f<>"']/g,"").trim().slice(0,24)) || "フレンド"; }
+// 受信した予想/ベットを「プリミティブのみ」に再構築（任意HTML・巨大データの混入を遮断）
+function cleanPred(src){
+  const out={group:{},ko:{}}; src=src||{};
+  const g=src.group||{};
+  for(const n in g){ if(!/^\d+$/.test(n))continue; const s=g[n]||{}; const e={};
+    if(s.o==="h"||s.o==="d"||s.o==="a") e.o=s.o;
+    if(Number.isInteger(s.h)) e.h=Math.max(0,Math.min(99,s.h));
+    if(Number.isInteger(s.a)) e.a=Math.max(0,Math.min(99,s.a));
+    if(Object.keys(e).length) out.group[n]=e; }
+  const k=src.ko||{};
+  for(const n in k){ if(!/^\d+$/.test(n))continue; if(k[n]==="home"||k[n]==="away") out.ko[n]=k[n]; }
+  return out;
+}
+function cleanBets(src){
+  const out={group:{},ko:{}}; src=src||{};
+  const g=src.group||{};
+  for(const n in g){ if(!/^\d+$/.test(n))continue; const st=Number(g[n]&&g[n].stake);
+    if(Number.isFinite(st)&&st>0) out.group[n]={stake:Math.min(1e7,Math.floor(st))}; }
+  const k=src.ko||{};
+  for(const n in k){ if(!/^\d+$/.test(n))continue; const o=k[n]||{}; const st=Number(o.stake);
+    if(Number.isFinite(st)&&st>0){ const e={stake:Math.min(1e7,Math.floor(st))};
+      if(o.side==="home"||o.side==="away") e.side=o.side; out.ko[n]=e; } }
+  return out;
+}
+function cleanIncomingPlayer(raw){
+  const id=safeId(raw&&raw.id); if(!id) return null;
+  return {id, name:sanitizeName(raw&&raw.name), color:safeColor(raw&&raw.color),
+    pred:cleanPred(raw&&raw.pred), bets:cleanBets(raw&&raw.bets), ts:Number(raw&&raw.ts)||0};
+}
 let state = {
   pred:{group:{},ko:{}},      // 自分の予想（計算エンジンが参照）
   bets:{group:{},ko:{}},      // 自分のベット {[n]:{stake}}（勝敗はpredから）
@@ -616,7 +651,6 @@ function load(){
 }
 function save(){
   localStorage.setItem(LS_KEY, JSON.stringify(state));
-  if(typeof syncPush==="function") syncPush();
 }
 /* 自分を1プレイヤーとして表現したスナップショット */
 function meSnapshot(){
@@ -919,7 +953,7 @@ function editName(){
   const cur = state.me.name || "";
   const nm = prompt("リーグで表示する名前を入力してください：", cur);
   if(nm===null) return;
-  state.me.name = nm.trim().slice(0,16);
+  state.me.name = nm.trim() ? sanitizeName(nm).slice(0,16) : "";
   save(); render();
 }
 function randomFill(){
@@ -1049,7 +1083,7 @@ function updatePlayerChip(){
   const nm = document.getElementById("player-name");
   const co = document.getElementById("player-coins");
   if(!dot) return;
-  dot.style.background = state.me.color;
+  dot.style.background = safeColor(state.me.color);
   nm.textContent = state.me.name || "あなた（名前未設定）";
   const t = tallyCoins(meSnapshot());
   co.innerHTML = `🪙 ${t.balance}` + (t.locked>0 ? ` <span class="lk">(賭け中 ${t.locked})</span>` : "");
@@ -1389,13 +1423,14 @@ function importShareCode(){
   try{
     const raw=code.replace(/^WC26\./,"");
     const snap=JSON.parse(decodeURIComponent(escape(atob(raw))));
-    if(!snap.id||!snap.pred){ alert("コードを認識できませんでした。"); return; }
-    if(snap.id===state.me.id){ alert("これはあなた自身のコードです。"); return; }
-    state.players[snap.id]={name:snap.name||"フレンド", color:snap.color||pickColor(),
-      pred:snap.pred, bets:snap.bets||{group:{},ko:{}}, ts:snap.ts||Date.now()};
+    const clean=cleanIncomingPlayer(snap);
+    if(!clean){ alert("コードを認識できませんでした。"); return; }
+    if(clean.id===state.me.id){ alert("これはあなた自身のコードです。"); return; }
+    if(!clean.color || clean.color==="#94a4c9") clean.color=pickColor();
+    state.players[clean.id]=clean;
     if(ta) ta.value="";
     save(); render();
-    alert(`「${snap.name||"フレンド"}」さんの予想を取り込みました 🎉`);
+    alert(`「${clean.name}」さんの予想を取り込みました 🎉`);
   }catch(e){ alert("読み込みに失敗しました。コードが正しいか確認してください。"); }
 }
 function removeFriend(id){
@@ -1426,7 +1461,7 @@ function renderLeague(){
     const diffHTML = diff===0?"":` <span class="${diff>0?"up":"dn"}">${diff>0?"+":""}${diff}</span>`;
     html += `<tr class="${isMe?"me":""}">
       <td><span class="rk">${rankMedal(i)}</span></td>
-      <td class="l"><span class="pname"><span class="pdot" style="color:${r.p.color};background:${r.p.color}"></span>${r.p.name||"名無し"}${isMe?" <span style='color:var(--sub);font-weight:400'>(あなた)</span>":""}</span></td>
+      <td class="l"><span class="pname"><span class="pdot" style="color:${safeColor(r.p.color)};background:${safeColor(r.p.color)}"></span>${esc(r.p.name)||"名無し"}${isMe?" <span style='color:var(--sub);font-weight:400'>(あなた)</span>":""}</span></td>
       <td><span class="coin">${st.balance}</span>${diffHTML}</td>
       <td>${st.locked>0?st.locked:"—"}</td>
       <td>${st.settledCount>0?Math.round(st.hitRate*100)+"%":"—"}<span style="color:var(--sub);font-size:10px"> ${st.settledCount>0?`(${st.hits}/${st.settledCount})`:""}</span></td>
@@ -1442,7 +1477,7 @@ function renderLeague(){
     html += '<div class="friend-tabs">';
     players.forEach(p=>{
       if(p.self) return;
-      html += `<button class="${ui.viewPlayer===p.id?"on":""}" onclick="viewFriend('${p.id}')">${p.name||"フレンド"}</button>`;
+      html += `<button class="${ui.viewPlayer===safeId(p.id)?"on":""}" onclick="viewFriend('${safeId(p.id)}')">${esc(p.name)||"フレンド"}</button>`;
     });
     html += '</div>';
     const vp = ui.viewPlayer && state.players[ui.viewPlayer] ? allPlayers().find(p=>p.id===ui.viewPlayer) : null;
@@ -1454,18 +1489,17 @@ function renderLeague(){
     html += '</div>';
   }
 
-  // 共有（コード）
-  html += '<div class="league-section"><h3>🔗 予想を共有（コード）</h3>';
-  html += '<p class="hint">オンライン設定なしでも、コードを送り合えば順位表に反映できます。下の「あなたのコード」をコピーして友達に送り、友達のコードを貼り付けて取り込みます。</p>';
-  html += `<div class="share-row"><textarea id="my-code" readonly placeholder="「コピー」を押すとここに表示されます">${""}</textarea><button onclick="copyShareCode()">📋 自分のコードをコピー</button></div>`;
+  // 共有（コード）— 友達と遊ぶメインの方法
+  html += '<div class="league-section"><h3>🤝 友達と一緒に遊ぶ</h3>';
+  html += `<p class="hint">サーバー不要・登録不要。<b>コードを送り合うだけ</b>で順位表にお互いが反映されます。<br>
+    <b>① </b>右上の名前チップから表示名を設定 → <b>② </b>「自分のコードをコピー」してLINE等で友達に送る → <b>③ </b>友達のコードを下に貼って「取り込む」。<br>
+    予想が固まったタイミングで1回交換すればOK。試合結果は各自の画面で自動更新されるので、以降は勝手に順位が動きます。</p>`;
+  html += `<div class="share-row"><textarea id="my-code" readonly placeholder="「コピー」を押すとここに表示されます（このコードを友達に送る）">${""}</textarea><button onclick="copyShareCode()">📋 自分のコードをコピー</button></div>`;
   html += `<div class="share-row"><textarea id="import-code" placeholder="友達からもらったコード（WC26....）をここに貼り付け"></textarea><button onclick="importShareCode()">📥 取り込む</button></div>`;
   if(friendCount>0){
-    html += '<p class="hint" style="margin-top:8px">取り込み済み: ' + players.filter(p=>!p.self).map(p=>`${p.name} <a href="#" onclick="removeFriend('${p.id}');return false" style="color:var(--red)">[外す]</a>`).join("　") + '</p>';
+    html += '<p class="hint" style="margin-top:8px">取り込み済み: ' + players.filter(p=>!p.self).map(p=>`${esc(p.name)} <a href="#" onclick="removeFriend('${safeId(p.id)}');return false" style="color:var(--red)">[外す]</a>`).join("　") + '</p>';
   }
   html += '</div>';
-
-  // オンライン部屋
-  html += renderOnlineBox();
 
   html += '</div>';
   return html;
@@ -1493,29 +1527,6 @@ function friendSummary(p){
 // 友達pred視点の優勝者（withPred経由）
 function koWinner4(predObj, n){ return withPred(predObj, ()=>koWinner("pred", n)); }
 function viewFriend(id){ ui.viewPlayer = (ui.viewPlayer===id?null:id); render(); }
-
-function renderOnlineBox(){
-  const on = syncOnline();
-  const hasCfg = !!(state.room && state.room.fb);
-  let html = '<div class="league-section"><h3>🌐 オンライン部屋（リアルタイム対戦）</h3>';
-  html += `<div class="online-box">`;
-  html += `<div class="row"><span class="online-status ${on?"on":"off"}">${on?"● 接続中（部屋: "+state.room.code+"）":"○ 未接続（ローカル/コード共有モード）"}</span>`;
-  if(on) html += ` <button onclick="leaveOnline()">退出する</button>`;
-  html += `</div>`;
-  if(!on){
-    html += `<p class="steps">Firebase（無料）を使うと、全員の順位がリアルタイム同期されます。<br>
-      <b>① </b><a href="https://console.firebase.google.com" target="_blank" style="color:var(--blue)">console.firebase.google.com</a> でプロジェクト作成 → ウェブアプリ追加 → <b>firebaseConfig</b> をコピー<br>
-      <b>② </b>左メニュー Build → <b>Firestore Database</b> → 「データベースの作成」→ テストモードで開始<br>
-      <b>③ </b>下に firebaseConfig（{ } 全体）を貼り付け、合言葉（部屋コード）を決めて「接続」</p>`;
-    html += `<textarea id="fb-config" placeholder='ここに firebaseConfig を貼り付け：\nconst firebaseConfig = { apiKey: "...", projectId: "...", ... };\n（{ } の部分だけでもOK）'>${hasCfg?JSON.stringify(state.room.fb,null,1):""}</textarea>`;
-    html += `<div class="row"><input id="room-code" placeholder="部屋コード（合言葉）例: tomodachi2026" value="${state.room.code||""}"><input id="room-name" placeholder="表示名" value="${state.me.name||""}"><button onclick="connectOnline()">🔌 接続する</button></div>`;
-    html += `<p class="hint">※ 合言葉を知っている人だけが同じ部屋に入れます（友達同士の利用を想定した簡易共有です）。</p>`;
-  } else {
-    html += `<p class="hint">あなたの予想とベットは自動でこの部屋に同期されます。友達が同じ合言葉「<b>${state.room.code}</b>」で接続すると、上の順位表にリアルタイムで反映されます。</p>`;
-  }
-  html += `</div></div>`;
-  return html;
-}
 
 /* ============ チーム強度＆オッズ ============ */
 // 0〜100のおおまかな強さ（FIFAランク帯の目安）。未登録は50。
@@ -1659,95 +1670,9 @@ function tallyScore(player){
   });
 }
 
-/* ============ オンライン同期（Firebase Firestore） ============ */
-let _sync = {db:null, fs:null, unsub:null, ready:false};
-function syncOnline(){ return !!(state.room && state.room.fb && state.room.code && _sync.ready); }
-function parseFbConfig(text){
-  if(!text) return null;
-  const s=text.indexOf("{"), e=text.lastIndexOf("}");
-  if(s<0||e<=s) return null;
-  try{ const o=(new Function("return ("+text.slice(s,e+1)+")"))(); return (o&&o.projectId)?o:null; }
-  catch(_){ return null; }
-}
-async function loadFirebase(){
-  if(window._fbLib) return window._fbLib;
-  const app = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-  const fs  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-  window._fbLib = {app, fs};
-  return window._fbLib;
-}
-async function startSync(){
-  const {app, fs} = await loadFirebase();
-  if(_sync.unsub){ _sync.unsub(); _sync.unsub=null; }
-  const fbApp = app.initializeApp(state.room.fb, "wc-"+state.room.code);
-  const db = fs.getFirestore(fbApp);
-  _sync.db=db; _sync.fs=fs; _sync.ready=true;
-  await syncPush();
-  const col = fs.collection(db, "rooms", state.room.code, "players");
-  _sync.unsub = fs.onSnapshot(col, (snap)=>{
-    snap.docChanges().forEach(ch=>{
-      const d = ch.doc.data();
-      if(!d || d.id===state.me.id) return;
-      if(ch.type==="removed") delete state.players[d.id];
-      else state.players[d.id] = {name:d.name, color:d.color||pickColor(),
-        pred:d.pred||{group:{},ko:{}}, bets:d.bets||{group:{},ko:{}}, ts:d.ts||0};
-    });
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
-    if(ui.tab==="league") render(); else updatePlayerChip();
-  }, (err)=>{ console.warn("onSnapshot error", err); setFetchStatus("⚠️ オンライン同期エラー（ルール/接続を確認）"); });
-}
-async function syncPush(){
-  if(!_sync.ready || !_sync.db) return;
-  try{
-    const {fs, db} = _sync;
-    const ref = fs.doc(db, "rooms", state.room.code, "players", state.me.id);
-    await fs.setDoc(ref, {id:state.me.id, name:state.me.name||"あなた", color:state.me.color,
-      pred:state.pred, bets:state.bets, ts:Date.now()});
-  }catch(e){ console.warn("sync push failed", e); }
-}
-function initSync(){
-  if(state.room && state.room.fb && state.room.code){
-    startSync().catch(e=>{ console.warn("auto-sync failed", e); });
-  }
-}
-async function connectOnline(){
-  const cfgText = (document.getElementById("fb-config")||{}).value || "";
-  const code = ((document.getElementById("room-code")||{}).value || "").trim();
-  const name = ((document.getElementById("room-name")||{}).value || "").trim();
-  const cfg = parseFbConfig(cfgText);
-  if(!cfg){ alert("firebaseConfig を認識できませんでした。\n{ apiKey: ..., projectId: ... } を含めて貼り付けてください。"); return; }
-  if(!code){ alert("部屋コード（合言葉）を入力してください。"); return; }
-  if(name) state.me.name = name.slice(0,16);
-  state.room.fb = cfg; state.room.code = code.replace(/[\/\s]/g,"_").slice(0,40);
-  save();
-  setFetchStatus("🌐 オンライン部屋に接続中…");
-  try{
-    await startSync();
-    setFetchStatus("✅ オンライン部屋に接続しました");
-  }catch(e){
-    console.error(e);
-    alert("接続に失敗しました：\n"+(e&&e.message||e)+"\n\nFirestoreが作成済みか、configが正しいか確認してください。");
-    state.room.fb=null; _sync.ready=false; save();
-  }
-  render();
-}
-function leaveOnline(){
-  if(!confirm("オンライン部屋から退出しますか？（あなたの予想はこの端末に残ります）")) return;
-  try{
-    if(_sync.unsub){ _sync.unsub(); _sync.unsub=null; }
-    if(_sync.ready && _sync.fs && _sync.db){
-      _sync.fs.deleteDoc(_sync.fs.doc(_sync.db, "rooms", state.room.code, "players", state.me.id)).catch(()=>{});
-    }
-  }catch(_){}
-  _sync.ready=false; _sync.db=null;
-  state.room.fb=null; state.room.code="";
-  save(); render();
-}
-
 /* ============ 初期化 ============ */
 buildData();
 load();
-initSync();      // オンライン設定があれば購読開始
 render();
 if(DATA) fetchResults(false); // 起動時に最新の試合結果を自動反映
 </script>
