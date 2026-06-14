@@ -2753,9 +2753,9 @@ async function startAccountSync(){
     if(d.writer && d.writer===SESSION) return;                   // 自分の端末の書き込みエコーは無視
     state.pred=cleanPred(d.pred);
     state.bets=cleanBets(d.bets);
-    if(typeof d.name==="string") state.me.name = d.name ? sanitizeName(d.name).slice(0,16) : "";
+    if(typeof d.name==="string" && d.name) state.me.name = sanitizeName(d.name).slice(0,16);  // 空名で既存の名前を消さない
     if(d.color) state.me.color=safeColor(d.color);
-    state.me.avatar=sanitizeAvatar(d.avatar);
+    const inAv=sanitizeAvatar(d.avatar); if(inAv) state.me.avatar=inAv;                        // 空アバターで既存写真を消さない
     localStorage.setItem(LS_KEY, JSON.stringify(state));
     render(); updatePlayerChip(); refreshSettings();
     if(_sync.ready) syncPush();                                  // ルームにも反映
