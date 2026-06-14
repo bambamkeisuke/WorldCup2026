@@ -171,7 +171,7 @@ tr.q1 td:first-child{box-shadow:inset 3px 0 0 var(--green)}
 tr.q3 td{background:linear-gradient(90deg,rgba(255,209,102,.17),rgba(255,209,102,.03))}
 tr.q3 td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .match-row{
-  display:grid;grid-template-columns:62px 1fr 108px 1fr 64px;align-items:center;gap:4px;
+  display:grid;grid-template-columns:62px 1fr 104px 1fr 80px;align-items:center;gap:4px;
   padding:4px 2px;border-top:1px dashed rgba(148,178,255,.15);font-size:12.5px;border-radius:8px;transition:background .15s;
 }
 .match-row:hover{background:rgba(148,178,255,.05)}
@@ -194,7 +194,7 @@ img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-alig
 .oc-btn:hover{color:var(--text)}
 .oc-btn.sel{background:var(--blue-grad);border-color:rgba(77,171,255,.7);color:var(--text);box-shadow:0 0 12px rgba(77,171,255,.28)}
 #fetch-status{font-size:11px;color:var(--sub);align-self:center;white-space:nowrap}
-.other-info{font-size:10.5px;color:var(--sub);text-align:center;white-space:nowrap}
+.other-info{font-size:10.5px;color:var(--sub);text-align:center;white-space:normal;line-height:1.35;word-break:keep-all;min-width:0}
 .score-txt{text-align:center;font-weight:bold;font-size:14px;font-family:var(--disp);letter-spacing:1px}
 .judge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:1px 8px;border-radius:99px;letter-spacing:.3px;line-height:1.6;white-space:nowrap}
 .judge.exact{color:#1a1300;background:var(--holo);background-size:200% auto;animation:titleShine 4s linear infinite;box-shadow:0 0 12px rgba(255,211,107,.4)}
@@ -1519,6 +1519,12 @@ const JUDGE_ICON = {
   outcome:'<span class="judge outcome" title="勝敗的中（+1点）">○ 的中</span>',
   miss:'<span class="judge miss" title="ハズレ">✕ ハズレ</span>'
 };
+// 試合行のインライン表示用（省スペースのアイコンのみ・フル文言はtitleとSCORECARDに）
+const JUDGE_MINI = {
+  exact:'<span class="judge exact" title="スコアまで的中（+3点）">◎</span>',
+  outcome:'<span class="judge outcome" title="勝敗的中（+1点）">○</span>',
+  miss:'<span class="judge miss" title="ハズレ">✕</span>'
+};
 function outcomeText(m, e){
   if(e.h!==null && e.a!==null) return `${e.h}-${e.a}`;
   if(e.o==="h") return teamJa(m.home)+"勝";
@@ -1637,7 +1643,7 @@ function groupMatchRow(m, track, showGroup){
   let otherInfo = "";
   if(track==="pred"){
     const act = getGroupScore("actual", m.n);
-    if(act) otherInfo = `結果 ${act.h}-${act.a}` + (e.o ? " " + JUDGE_ICON[judgeMatch(e,act)] : "");
+    if(act) otherInfo = `結果 ${act.h}-${act.a}` + (e.o ? " " + JUDGE_MINI[judgeMatch(e,act)] : "");
   } else {
     const pe = matchEntry("pred", m.n);
     if(pe.o) otherInfo = `予想 ${outcomeText(m,pe)}`;
