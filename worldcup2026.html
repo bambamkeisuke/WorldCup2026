@@ -261,6 +261,7 @@ svg.bracket-svg{position:absolute;inset:0;pointer-events:none;z-index:0;overflow
 .bracket-line{fill:none;stroke:#7df0ff;stroke-width:1.5;opacity:.42;stroke-dasharray:5 8;
   animation:flowDash .9s linear infinite;filter:drop-shadow(0 0 3px rgba(125,240,255,.7))}
 @keyframes flowDash{to{stroke-dashoffset:-13}}
+@media (prefers-reduced-motion: reduce){ .bracket-line{animation:none} }
 .round{display:flex;flex-direction:column;min-width:215px;flex:1;position:relative;z-index:1;scroll-snap-align:start}
 .ko-bar{display:flex;gap:8px;align-items:center;margin:0 0 10px}
 .ko-bar .zoom-ctrl{margin:0;flex:0 0 auto}
@@ -2435,7 +2436,6 @@ function drawBracketLines(){
   const W=bracket.scrollWidth, H=bracket.scrollHeight;
   svg.setAttribute("width",W); svg.setAttribute("height",H); svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
   while(svg.firstChild) svg.removeChild(svg.firstChild);
-  if(_reduceMotion) return;
   const cards={};
   bracket.querySelectorAll(".ko-card[data-n]").forEach(c=>cards[c.getAttribute("data-n")]=c);
   const br=bracket.getBoundingClientRect();
