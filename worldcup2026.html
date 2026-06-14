@@ -201,8 +201,27 @@ img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-alig
 .coin-up{color:var(--green);font-weight:700}
 .coin-dn{color:var(--red);font-weight:700}
 .frank{font-size:9.5px;color:var(--sub);margin-left:5px;font-family:var(--disp);letter-spacing:.5px;opacity:.8}
-.pav{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1.5px solid var(--pc,#94a4c9);background:#0a0c18;line-height:1;flex:0 0 auto;vertical-align:middle;box-shadow:0 0 8px -2px var(--pc,#94a4c9)}
+.pav{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1.5px solid var(--pc,#94a4c9);background:#0a0c18;line-height:1;flex:0 0 auto;vertical-align:middle;box-shadow:0 0 8px -2px var(--pc,#94a4c9);overflow:hidden}
 .pav.empty{background:var(--pc,#94a4c9)}
+.pav img{width:100%;height:100%;object-fit:cover;display:block}
+/* アカウント設定モーダル */
+.modal{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(2,3,10,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:16px}
+.modal-panel{background:#0a0c1a;border:1px solid var(--line);border-radius:18px;padding:18px;max-width:380px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.6);position:relative}
+.modal-panel::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--holo);background-size:200% auto;animation:titleShine 6s linear infinite}
+.set-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.set-head h3{font-family:var(--disp);font-size:16px;letter-spacing:1.5px;color:var(--cyan)}
+.set-close{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:14px}
+.set-avatar{display:flex;justify-content:center;margin:6px 0 12px}
+.set-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.set-btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 14px;cursor:pointer;font-size:12.5px;font-family:inherit}
+.set-btn.primary{background:var(--holo);background-size:200% auto;animation:titleShine 5s linear infinite;color:#06121f;border:none;font-weight:700}
+.set-btn:hover{border-color:rgba(125,240,255,.6)}
+.set-label{font-size:11px;color:var(--sub);margin:14px 0 6px;font-weight:700}
+.set-input{width:100%;background:rgba(5,9,20,.7);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;font-family:inherit}
+.set-input:focus{outline:none;border-color:var(--cyan)}
+.color-pick{display:flex;gap:7px;flex-wrap:wrap}
+.color-pick button{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;padding:0}
+.color-pick button.on{border-color:#fff;box-shadow:0 0 10px rgba(255,255,255,.5);transform:scale(1.1)}
 .prof-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .prof-meta{display:flex;flex-direction:column;gap:8px;min-width:0}
 .prof-name{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit}
@@ -410,6 +429,23 @@ footer{
 .bc-nhk{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.35)}
 .bc-ntv{background:rgba(255,90,120,.12);color:#ff8fa3;border:1px solid rgba(255,90,120,.4)}
 .bc-fuji{background:rgba(125,240,255,.1);color:var(--cyan);border:1px solid rgba(125,240,255,.4)}
+/* カレンダー（グリッド） */
+.cal-grid-wrap{display:flex;flex-wrap:wrap;gap:16px}
+.cal-month{flex:1 1 300px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 12px 14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.cal-mtitle{font-family:var(--disp);font-size:15px;letter-spacing:1px;color:var(--cyan);text-align:center;margin-bottom:10px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-wd{text-align:center;font-size:10px;color:var(--sub);padding:2px 0}
+.cal-wd.sun{color:#ff8fa3}.cal-wd.sat{color:#7fb6ff}
+.cal-cell{position:relative;aspect-ratio:1/1;border-radius:8px;border:1px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--sub)}
+.cal-cell.empty{border:none}
+.cal-cell .cal-d{font-family:var(--disp)}
+.cal-cell.has{background:var(--panel2);border-color:var(--line);color:var(--text);cursor:pointer;transition:all .15s}
+.cal-cell.has:hover{border-color:rgba(125,240,255,.6);box-shadow:0 0 12px rgba(125,240,255,.2)}
+.cal-cell.today{box-shadow:inset 0 0 0 1.5px var(--cyan)}
+.cal-cell.sel{background:var(--blue-grad);border-color:var(--cyan);box-shadow:0 0 14px rgba(125,240,255,.35)}
+.cal-cnt{font-size:8.5px;font-weight:700;color:#06121f;background:var(--cyan);border-radius:99px;padding:0 5px;margin-top:2px;min-width:14px;text-align:center}
+.cal-cnt.jp{background:#ff5d7a;color:#fff}
+@media(max-width:520px){ .cal-month{flex:1 1 100%} .cal-cell{font-size:11px} }
 @media(max-width:520px){
   .cal-row{grid-template-columns:1fr auto;gap:6px}
   .cal-time{grid-column:1/-1;color:var(--cyan)}
@@ -507,10 +543,10 @@ details.share-fallback[open]>summary{margin-bottom:10px}
   <div class="topbar">
     <h1><span class="cup">🏆</span><span class="ttl">FIFA WORLD CUP 2026</span><span class="sub">PREDICT · BET · WIN</span><span class="jst">JST（日本時間）表示</span></h1>
     <div class="head-right">
-      <div class="player-chip" id="player-chip" onclick="editName()" title="クリックで名前を変更">
+      <button class="player-chip" id="player-chip" onclick="openSettings()" title="アカウント設定">
         <span class="dot" id="player-dot"></span><span id="player-name">あなた</span>
         <span class="coins" id="player-coins">🪙 1000</span>
-      </div>
+      </button>
       <button id="mode-toggle" class="mode-toggle" onclick="toggleMode()" title="予想（メイン）と実際の結果を切り替え"></button>
     </div>
   </div>
@@ -538,6 +574,10 @@ details.share-fallback[open]>summary{margin-bottom:10px}
 <div id="champ-ribbon"></div>
 <div class="modebanner" id="modebanner"></div>
 <main id="app"></main>
+<div id="settings-modal" class="modal" style="display:none" onclick="if(event.target===this)closeSettings()">
+  <div class="modal-panel" id="settings-panel"></div>
+</div>
+<input type="file" id="avatar-file" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
 <footer>🕐 日時表記はすべて<b>日本時間(JST)</b>に変換済みです（現地とは日付が異なる場合があります）。試合結果はESPN公開データから自動取得・自動反映されます（画面表示時＋「結果を自動取得」ボタン。手入力は不要）。順位決定は 勝点→得失点差→総得点→当該チーム間の成績 を適用（フェアプレーポイント・抽選は未対応）。3位通過8チームの山への振り分けは規定の条件を満たす割り当てを自動探索する簡易方式。予想はこのブラウザ(localStorage)に自動保存されます。</footer>
 <script>
 "use strict";
@@ -825,7 +865,11 @@ function cleanBets(src){
       if(o.side==="home"||o.side==="away") e.side=o.side; out.ko[n]=e; } }
   return out;
 }
-function sanitizeAvatar(s){ return String(s==null?"":s).replace(/[<>"'&]/g,"").trim().slice(0,4); }
+function sanitizeAvatar(s){
+  s=String(s==null?"":s);
+  if(/^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/.test(s)) return s.slice(0,200000); // アップロード写真
+  return s.replace(/[<>"'&]/g,"").trim().slice(0,4); // 絵文字
+}
 function cleanIncomingPlayer(raw){
   const id=safeId(raw&&raw.id); if(!id) return null;
   return {id, name:sanitizeName(raw&&raw.name), color:safeColor(raw&&raw.color), avatar:sanitizeAvatar(raw&&raw.avatar),
@@ -834,7 +878,9 @@ function cleanIncomingPlayer(raw){
 /* 円形アバター（絵文字 or 色ドット） */
 function avatarHTML(p, size){
   const col=safeColor(p&&p.color), av=sanitizeAvatar(p&&p.avatar), s=size||18;
-  return `<span class="pav ${av?"":"empty"}" style="--pc:${col};width:${s}px;height:${s}px;font-size:${Math.round(s*0.6)}px">${av?esc(av):""}</span>`;
+  const isImg=/^data:image\//.test(av);
+  const inner = isImg ? `<img src="${av}" alt="">` : (av?esc(av):"");
+  return `<span class="pav ${isImg?"img":(av?"":"empty")}" style="--pc:${col};width:${s}px;height:${s}px;font-size:${Math.round(s*0.6)}px">${inner}</span>`;
 }
 let state = {
   pred:{group:{},ko:{}},      // 自分の予想（計算エンジンが参照）
@@ -844,7 +890,7 @@ let state = {
   room:{code:"", fb:null},    // fb: firebaseConfig（オンライン時のみ）
   players:{}                  // 友達のスナップショット {[id]:{name,color,pred,bets,ts}}
 };
-let ui = {tab:"groups", mode:"pred", viewPlayer:null, groupView:"byGroup"};
+let ui = {tab:"groups", mode:"pred", viewPlayer:null, groupView:"byGroup", calView:"list", calSelDate:null};
 function ensureLeague(){
   if(!state.bets) state.bets = {group:{},ko:{}};
   if(!state.bets.group) state.bets.group = {};
@@ -1269,10 +1315,54 @@ function editName(){
   state.me.name = nm.trim() ? sanitizeName(nm).slice(0,16) : "";
   save(); render();
 }
-function setAvatar(e){ state.me.avatar = sanitizeAvatar(e); save(); render(); }
+function setAvatar(e){ state.me.avatar = sanitizeAvatar(e); save(); render(); refreshSettings(); }
 function editAvatar(){
-  const v = prompt("好きな絵文字を1つ入力してください（例: 🦊 ⚽ 🔥）：", state.me.avatar||"");
-  if(v===null) return; state.me.avatar = sanitizeAvatar(v); save(); render();
+  const v = prompt("好きな絵文字を1つ入力してください（例: 🦊 ⚽ 🔥）：", /^data:/.test(state.me.avatar)?"":state.me.avatar||"");
+  if(v===null) return; state.me.avatar = sanitizeAvatar(v); save(); render(); refreshSettings();
+}
+function setColor(c){ if(PLAYER_COLORS.includes(c)){ state.me.color=c; save(); render(); refreshSettings(); } }
+function setMeName(v){ state.me.name = v.trim() ? sanitizeName(v).slice(0,16) : ""; save(); updatePlayerChip(); }
+// アップロード写真をアイコンに（96px正方形へ縮小してJPEG化）
+function uploadAvatar(input){
+  const f=input.files && input.files[0]; if(!f) return;
+  if(!/^image\//.test(f.type)){ alert("画像ファイルを選んでください。"); return; }
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const S=96, c=document.createElement("canvas"); c.width=S; c.height=S;
+      const ctx=c.getContext("2d");
+      const m=Math.min(img.width,img.height), sx=(img.width-m)/2, sy=(img.height-m)/2;
+      ctx.drawImage(img, sx,sy,m,m, 0,0,S,S);
+      let url; try{ url=c.toDataURL("image/jpeg",0.72); }catch(_){ alert("この画像は読み込めませんでした。"); return; }
+      state.me.avatar=sanitizeAvatar(url); save(); render(); refreshSettings();
+    };
+    img.onerror=()=>alert("画像を読み込めませんでした。");
+    img.src=fr.result;
+  };
+  fr.readAsDataURL(f); input.value="";
+}
+/* ===== アカウント設定モーダル ===== */
+function openSettings(){ const m=document.getElementById("settings-modal"); if(m){ m.style.display="flex"; refreshSettings(); } }
+function closeSettings(){ const m=document.getElementById("settings-modal"); if(m) m.style.display="none"; }
+function refreshSettings(){
+  const p=document.getElementById("settings-panel"); if(!p) return;
+  if(document.getElementById("settings-modal").style.display==="none") return;
+  p.innerHTML = `
+    <div class="set-head"><h3>アカウント設定</h3><button class="set-close" onclick="closeSettings()" aria-label="閉じる">✕</button></div>
+    <div class="set-avatar">${avatarHTML(meSnapshot(),92)}</div>
+    <div class="set-actions">
+      <button class="set-btn primary" onclick="document.getElementById('avatar-file').click()">📷 写真をアップロード</button>
+      ${state.me.avatar?`<button class="set-btn" onclick="setAvatar('')">削除</button>`:""}
+    </div>
+    <div class="set-label">絵文字から選ぶ</div>
+    <div class="avatar-pick">${AVATAR_SET.map(e=>`<button class="${state.me.avatar===e?"on":""}" onclick="setAvatar('${e}')">${e}</button>`).join("")}<button class="av-custom" onclick="editAvatar()" title="自由入力">＋</button></div>
+    <div class="set-label">表示名</div>
+    <input id="set-name" class="set-input" maxlength="16" placeholder="あなたの名前" value="${esc(state.me.name)}" oninput="setMeName(this.value)">
+    <div class="set-label">カラー</div>
+    <div class="color-pick">${PLAYER_COLORS.map(c=>`<button class="${state.me.color===c?"on":""}" style="background:${c}" onclick="setColor('${c}')" aria-label="色"></button>`).join("")}</div>
+    <p class="hint" style="margin-top:14px">※ 写真は端末内とリーグ共有に使われます（自動で96pxに縮小）。${roomEnabled()?"オンライン同期に写真を載せるにはFirestoreルールの更新が必要です。":""}</p>
+  `;
 }
 function randomFill(){
   if(ui.mode!=="pred"){ alert("ランダム埋めは予想モードで使用できます。"); return; }
@@ -1411,10 +1501,11 @@ function updatePlayerChip(){
   const co = document.getElementById("player-coins");
   if(!dot) return;
   const col = safeColor(state.me.color);
-  dot.className = "pav " + (state.me.avatar ? "" : "empty");
+  const av = sanitizeAvatar(state.me.avatar);
   dot.style.setProperty("--pc", col);
   dot.style.width="22px"; dot.style.height="22px"; dot.style.fontSize="13px";
-  dot.textContent = state.me.avatar || "";
+  if(/^data:image\//.test(av)){ dot.className="pav img"; dot.innerHTML=`<img src="${av}" alt="">`; }
+  else { dot.className="pav "+(av?"":"empty"); dot.textContent=av; }
   nm.textContent = state.me.name || "あなた（名前未設定）";
   const t = tallyCoins(meSnapshot());
   co.innerHTML = `🪙 ${t.balance}` + (t.locked>0 ? ` <span class="lk">(賭け中 ${t.locked})</span>` : "");
@@ -1578,37 +1669,89 @@ const BROADCAST_CLS = {"NHK":"bc-nhk","日テレ":"bc-ntv","フジ":"bc-fuji","D
 function broadcastHTML(m, ko){
   return broadcastFor(m,ko).map(c=>`<span class="bc ${BROADCAST_CLS[c]||""}">${c}</span>`).join("");
 }
-function renderSchedule(){
-  // 全試合（グループ＋KO）をキックオフ順に、日付ごとに区切って表示
-  const all = [];
+function jstDateKey(m){
+  const utc=KICKOFF[m.n]; if(!utc) return m.date||"";
+  return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(utc)); // YYYY-MM-DD
+}
+function allMatchesList(){
+  const all=[];
   for(const m of DATA.groupMatches) all.push({m, t:kickoffTime(m.n), ko:false});
   for(const m of DATA.allKO) all.push({m, t:kickoffTime(m.n), ko:true});
   all.sort((a,b)=> a.t-b.t || a.m.n-b.m.n);
-  let html = `<p class="hint">全104試合の日程と放送（日本）。<b>DAZN＝全試合配信</b>／NHK＝日本戦・開幕・準決勝・決勝ほか。決勝トーナメントは対戦カードが決まり次第このカレンダーにも自動反映されます。<br><span style="opacity:.7">※地上波の個別割当は変更の可能性があります。</span></p>`;
-  html += '<div class="cal-list">';
-  let lastDay="";
-  for(const {m,ko} of all){
-    const day = jstDayLabel(m);
-    if(day!==lastDay){ html += `<div class="day-header">${day}</div>`; lastDay=day; }
-    let cardHTML, sc="";
-    if(ko){
-      const h=slotTeam("actual",m,"home"), a=slotTeam("actual",m,"away");
-      const r=state.actual.ko[m.n]||{};
-      if(Number.isInteger(r.h)&&Number.isInteger(r.a)) sc=`<span class="cal-sc">${r.h}-${r.a}${r.pk?" (PK)":""}</span>`;
-      cardHTML = `<span class="cal-home">${slotLabelHTML("actual",m,"home")}</span><span class="cal-vs">${sc||"vs"}</span><span class="cal-away">${slotLabelHTML("actual",m,"away")}</span>`;
-    } else {
-      const act=actualGroupResult(m.n);
-      if(act) sc=`<span class="cal-sc">${act.h}-${act.a}</span>`;
-      cardHTML = `<span class="cal-home">${teamHTMLHome(m.home)}</span><span class="cal-vs">${sc||"vs"}</span><span class="cal-away">${teamHTML(m.away)}</span>`;
-    }
-    const label = ko ? (m.title||`第${m.n}試合`) : `グループ${m.group}`;
-    html += `<div class="cal-row">
-      <span class="cal-time">${fmtJST(m,true)}</span>
-      <span class="cal-mid">${cardHTML}<span class="cal-meta">${label}・${cityJa(m.city)||""}</span></span>
-      <span class="cal-bc">${broadcastHTML(m,ko)}</span>
-    </div>`;
+  return all;
+}
+function calRowHTML(m, ko){
+  let cardHTML, sc="";
+  if(ko){
+    const r=state.actual.ko[m.n]||{};
+    if(Number.isInteger(r.h)&&Number.isInteger(r.a)) sc=`<span class="cal-sc">${r.h}-${r.a}${r.pk?" (PK)":""}</span>`;
+    cardHTML = `<span class="cal-home">${slotLabelHTML("actual",m,"home")}</span><span class="cal-vs">${sc||"vs"}</span><span class="cal-away">${slotLabelHTML("actual",m,"away")}</span>`;
+  } else {
+    const act=actualGroupResult(m.n);
+    if(act) sc=`<span class="cal-sc">${act.h}-${act.a}</span>`;
+    cardHTML = `<span class="cal-home">${teamHTMLHome(m.home)}</span><span class="cal-vs">${sc||"vs"}</span><span class="cal-away">${teamHTML(m.away)}</span>`;
   }
-  html += '</div>';
+  const label = ko ? (m.title||`第${m.n}試合`) : `グループ${m.group}`;
+  return `<div class="cal-row">
+    <span class="cal-time">${fmtJST(m,true)}</span>
+    <span class="cal-mid">${cardHTML}<span class="cal-meta">${label}・${cityJa(m.city)||""}</span></span>
+    <span class="cal-bc">${broadcastHTML(m,ko)}</span>
+  </div>`;
+}
+function renderSchedule(){
+  let html = `<p class="hint">全104試合の日程と放送（日本）。<b>DAZN＝全試合配信</b>／NHK＝日本戦・開幕・準決勝・決勝ほか。決勝Tは対戦カード確定で自動反映。<span style="opacity:.7">※地上波の個別割当は変更の可能性があります。</span></p>`;
+  html += `<div class="view-toggle">
+    <button class="${ui.calView!=="grid"?"on":""}" onclick="setCalView('list')">リスト</button>
+    <button class="${ui.calView==="grid"?"on":""}" onclick="setCalView('grid')">カレンダー</button>
+  </div>`;
+  html += ui.calView==="grid" ? renderCalendarGrid() : renderScheduleList();
+  return html;
+}
+function renderScheduleList(){
+  let html='<div class="cal-list">', lastDay="";
+  for(const {m,ko} of allMatchesList()){
+    const day=jstDayLabel(m);
+    if(day!==lastDay){ html+=`<div class="day-header">${day}</div>`; lastDay=day; }
+    html += calRowHTML(m,ko);
+  }
+  return html+'</div>';
+}
+function setCalView(v){ ui.calView=v; ui.calSelDate=null; render(); }
+function selectCalDay(key){ ui.calSelDate = (ui.calSelDate===key?null:key); render(); }
+function renderCalendarGrid(){
+  const byDay={};
+  for(const x of allMatchesList()){ const k=jstDateKey(x.m); (byDay[k]=byDay[k]||[]).push(x); }
+  const months=[...new Set(Object.keys(byDay).map(k=>k.slice(0,7)))].sort();
+  const todayKey=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  let html='<div class="cal-grid-wrap">';
+  for(const ym of months) html+=renderMonthGrid(ym, byDay, todayKey);
+  html+='</div>';
+  if(ui.calSelDate && byDay[ui.calSelDate]){
+    html += `<div class="cal-list" style="margin-top:14px"><div class="day-header">${jstDayLabel(byDay[ui.calSelDate][0].m)} の試合</div>`;
+    for(const {m,ko} of byDay[ui.calSelDate]) html+=calRowHTML(m,ko);
+    html+='</div>';
+  } else {
+    html += '<p class="hint" style="margin-top:10px">📅 日付をタップすると、その日の試合と放送を表示します。</p>';
+  }
+  return html;
+}
+function renderMonthGrid(ym, byDay, todayKey){
+  const [y,mo]=ym.split("-").map(Number);
+  const first=new Date(Date.UTC(y,mo-1,1)).getUTCDay();
+  const days=new Date(Date.UTC(y,mo,0)).getUTCDate();
+  const wd=["日","月","火","水","木","金","土"];
+  let html=`<div class="cal-month"><div class="cal-mtitle">${y}年 ${mo}月</div><div class="cal-grid">`;
+  html+=wd.map((d,i)=>`<div class="cal-wd ${i===0?"sun":i===6?"sat":""}">${d}</div>`).join("");
+  for(let i=0;i<first;i++) html+='<div class="cal-cell empty"></div>';
+  for(let d=1;d<=days;d++){
+    const key=`${ym}-${String(d).padStart(2,"0")}`;
+    const ms=byDay[key]||[];
+    const cls=["cal-cell"]; if(ms.length)cls.push("has"); if(key===todayKey)cls.push("today"); if(key===ui.calSelDate)cls.push("sel");
+    const jp=ms.some(x=>{const m=x.m; const h=x.ko?(slotTeam("actual",m,"home")||slotTeam("pred",m,"home")):m.home; const a=x.ko?(slotTeam("actual",m,"away")||slotTeam("pred",m,"away")):m.away; return h==="Japan"||a==="Japan";});
+    const onclick = ms.length?` onclick="selectCalDay('${key}')"`:"";
+    html+=`<div class="${cls.join(" ")}"${onclick}><span class="cal-d">${d}</span>${ms.length?`<span class="cal-cnt ${jp?"jp":""}">${ms.length}</span>`:""}</div>`;
+  }
+  html+='</div></div>';
   return html;
 }
 
@@ -1898,12 +2041,7 @@ function renderLeague(){
 
   let html = '<div class="league-wrap">';
 
-  // プロフィール（名前・アイコン）
-  html += '<div class="league-section"><h3>👤 あなたのプロフィール</h3>';
-  html += `<div class="prof-row">${avatarHTML(meSnapshot(),48)}<div class="prof-meta">`;
-  html += `<button class="prof-name" onclick="editName()">${esc(state.me.name)||"＋ 名前を設定"}</button>`;
-  html += `<div class="avatar-pick">${AVATAR_SET.map(e=>`<button class="${state.me.avatar===e?"on":""}" onclick="setAvatar('${e}')">${e}</button>`).join("")}<button class="av-custom" onclick="editAvatar()" title="自由入力">＋</button>${state.me.avatar?`<button class="av-custom" onclick="setAvatar('')" title="アイコンなし">✕</button>`:""}</div>`;
-  html += `</div></div></div>`;
+  // プロフィール設定は右上のアカウントボタン（設定モーダル）へ移動
 
   // 順位表
   html += '<div class="league-section"><h3>🏆 リーグ順位表</h3>';
