@@ -2757,6 +2757,8 @@ async function startAccountSync(){
     if(d.color) state.me.color=safeColor(d.color);
     const inAv=sanitizeAvatar(d.avatar); if(inAv) state.me.avatar=inAv;                        // 空アバターで既存写真を消さない
     localStorage.setItem(LS_KEY, JSON.stringify(state));
+    // クラウドのプロフィールが空で、この端末は持っているなら、クラウドを補完（自己回復）
+    if((!d.name && state.me.name) || (!d.avatar && state.me.avatar)) accountPush();
     render(); updatePlayerChip(); refreshSettings();
     if(_sync.ready) syncPush();                                  // ルームにも反映
     setFetchStatus("ほかの端末の変更を反映しました", "ok");
