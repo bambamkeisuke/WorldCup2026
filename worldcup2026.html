@@ -577,7 +577,7 @@ details.share-fallback[open]>summary{margin-bottom:10px}
 <div id="settings-modal" class="modal" style="display:none" onclick="if(event.target===this)closeSettings()">
   <div class="modal-panel" id="settings-panel"></div>
 </div>
-<input type="file" id="avatar-file" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+<input type="file" id="avatar-file" accept="image/*,.heic,.heif" style="display:none" onchange="uploadAvatar(this)">
 <footer>🕐 日時表記はすべて<b>日本時間(JST)</b>に変換済みです（現地とは日付が異なる場合があります）。試合結果はESPN公開データから自動取得・自動反映されます（画面表示時＋「結果を自動取得」ボタン。手入力は不要）。順位決定は 勝点→得失点差→総得点→当該チーム間の成績 を適用（フェアプレーポイント・抽選は未対応）。3位通過8チームの山への振り分けは規定の条件を満たす割り当てを自動探索する簡易方式。予想はこのブラウザ(localStorage)に自動保存されます。</footer>
 <script>
 "use strict";
@@ -1323,9 +1323,31 @@ function editAvatar(){
 function setColor(c){ if(PLAYER_COLORS.includes(c)){ state.me.color=c; save(); render(); refreshSettings(); } }
 function setMeName(v){ state.me.name = v.trim() ? sanitizeName(v).slice(0,16) : ""; save(); updatePlayerChip(); }
 // アップロード写真をアイコンに（96px正方形へ縮小してJPEG化）
-function uploadAvatar(input){
-  const f=input.files && input.files[0]; if(!f) return;
-  if(!/^image\//.test(f.type)){ alert("画像ファイルを選んでください。"); return; }
+function loadHeic2any(){
+  if(window.heic2any) return Promise.resolve(window.heic2any);
+  return new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+    s.onload=()=>res(window.heic2any); s.onerror=()=>rej(new Error("heic2any load failed"));
+    document.head.appendChild(s);
+  });
+}
+async function uploadAvatar(input){
+  const f=input.files && input.files[0]; input.value="";
+  if(!f) return;
+  const isHeic = /heic|heif/i.test(f.type) || /\.(heic|heif)$/i.test(f.name||"");
+  const looksImage = /^image\//.test(f.type) || isHeic || /\.(jpe?g|png|webp|gif|bmp)$/i.test(f.name||"");
+  if(!looksImage){ alert("画像ファイルを選んでください。"); return; }
+  let blob = f;
+  if(isHeic){
+    try{
+      setFetchStatus("HEIC画像を変換中…","loading");
+      const h2a=await loadHeic2any();
+      blob=await h2a({blob:f, toType:"image/jpeg", quality:0.85});
+      if(Array.isArray(blob)) blob=blob[0];
+      setFetchStatus("","none");
+    }catch(e){ console.warn("heic convert",e); setFetchStatus("","none"); /* iOSなら無変換でも通る場合があるので続行 */ }
+  }
   const fr=new FileReader();
   fr.onload=()=>{
     const img=new Image();
@@ -1337,10 +1359,10 @@ function uploadAvatar(input){
       let url; try{ url=c.toDataURL("image/jpeg",0.72); }catch(_){ alert("この画像は読み込めませんでした。"); return; }
       state.me.avatar=sanitizeAvatar(url); save(); render(); refreshSettings();
     };
-    img.onerror=()=>alert("画像を読み込めませんでした。");
+    img.onerror=()=>alert("画像を読み込めませんでした。HEICの場合はJPEGに変換してからお試しください。");
     img.src=fr.result;
   };
-  fr.readAsDataURL(f); input.value="";
+  fr.readAsDataURL(blob);
 }
 /* ===== アカウント設定モーダル ===== */
 function openSettings(){ const m=document.getElementById("settings-modal"); if(m){ m.style.display="flex"; refreshSettings(); } }
