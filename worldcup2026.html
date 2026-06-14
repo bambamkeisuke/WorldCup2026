@@ -311,6 +311,8 @@ footer{
 .bet-bar .bet-note{color:var(--sub)}
 .bet-bar .payout{color:var(--sub)}
 .bet-bar .payout .gain{color:var(--green);font-family:var(--disp);font-size:13px}
+.perfect-hint{color:#ffd36b;font-size:10.5px}
+.perfect-tag{display:inline-block;font-size:10px;font-weight:700;color:#06121f;background:var(--holo);background-size:200% auto;animation:titleShine 4s linear infinite;border-radius:5px;padding:1px 7px;margin-left:4px;box-shadow:0 0 12px rgba(255,211,107,.5)}
 .bet-bar.settled{padding-top:3px}
 .bet-bar.settled .bet-res b{font-family:var(--disp);font-size:13px}
 .bet-bar.settled.win .bet-res{color:var(--green)}
@@ -691,6 +693,7 @@ function buildData(){
 /* ============ 状態 ============ */
 const LS_KEY = "wc2026sim_v1";
 const START_COINS = 1000;
+const PERFECT_MULT = 2;   // スコアまで的中したときの配当倍率（パーフェクトボーナス）
 /* ===== オンライン共有ルーム設定 =====
    幹事がFirebaseの firebaseConfig をここに入れると、友達は設定不要で
    「合言葉＋名前」だけで参加でき、全員の予想・順位が自動同期される。
@@ -1112,9 +1115,13 @@ function betBarGroup(m, e){
   if(act && stake>0 && e.o){
     const win = e.o===act.o;
     const oddsVal = od ? od[e.o] : 2;
-    const delta = win ? `+${Math.round(stake*(oddsVal-1))}` : `-${stake}`;
+    const perfect = win && Number.isInteger(e.h)&&Number.isInteger(e.a)&&e.h===act.h&&e.a===act.a;
+    let amt = win ? Math.round(stake*(oddsVal-1)) : 0;
+    if(perfect) amt = amt*PERFECT_MULT;
+    const delta = win ? `+${amt}` : `-${stake}`;
+    const badge = perfect ? ` <span class="perfect-tag">⚡パーフェクト ×${PERFECT_MULT}</span>` : "";
     return `<div class="bet-bar settled ${win?"win":"lose"}">
-      <span class="bet-res">${win?"🎯 的中":"💥 ハズレ"} <b>${delta} 🪙</b>（賭け ${stake} × ${oddsVal.toFixed(2)}）</span></div>`;
+      <span class="bet-res">${win?"🎯 的中":"💥 ハズレ"} <b>${delta} 🪙</b>（賭け ${stake} × ${oddsVal.toFixed(2)}）${badge}</span></div>`;
   }
   const oddsHTML = od ? `<span class="odds-set">
       <span class="od ${e.o==="h"?"on":""}">勝 ${od.h.toFixed(2)}</span>
@@ -1127,7 +1134,9 @@ function betBarGroup(m, e){
     return `<div class="bet-bar">${oddsHTML}<span class="bet-note">勝敗を選ぶと賭けられます</span></div>`;
   }
   const oddsVal = od ? od[e.o] : 2;
-  const payout = stake>0 ? `的中で <b class="gain">+${Math.round(stake*(oddsVal-1))}</b> 🪙` : "";
+  const base = stake>0 ? Math.round(stake*(oddsVal-1)) : 0;
+  let payout = stake>0 ? `的中で <b class="gain">+${base}</b> 🪙` : "";
+  if(stake>0 && Number.isInteger(e.h) && Number.isInteger(e.a)) payout += ` <span class="perfect-hint">⚡スコアも的中で +${base*PERFECT_MULT}🪙</span>`;
   return `<div class="bet-bar">${oddsHTML}
     <span class="bet-ctrl">🪙<input class="stake" type="number" min="0" value="${stake||""}" placeholder="0" onchange="setBet('group',${m.n},this.value)">
       <button onclick="quickBet('group',${m.n},10)">+10</button>
@@ -1296,7 +1305,7 @@ function render(){
   document.getElementById("modebanner").innerHTML = ui.tab==="league"
     ? "🏅 <b>友達リーグ</b>：みんなの順位・コイン残高・称号を比較。<b>合言葉を入れるだけ</b>で友達とリアルタイム対戦（コード交換は不要）。"
     : (ui.mode==="pred"
-      ? "🔮 <b>予想＆ベット</b>：勝つと思うチーム名（引き分けは「分」）をクリック。さらにコインを賭けるとオッズに応じて増減します（自信があるほど多く賭けよう）。予想を変えれば以降のトーナメントも自動追従。"
+      ? "🔮 <b>予想＆ベット</b>：勝つと思うチーム名（引き分けは「分」）をクリック。コインを賭けるとオッズに応じて増減（自信があるほど多く賭けよう）。<b>スコアまで当てれば配当2倍（⚡パーフェクトボーナス）</b>。予想を変えれば以降のトーナメントも自動追従。"
       : "📊 <b>実際の結果</b>（閲覧専用）：試合結果は終了後に自動で取得・反映されます（🔄でいつでも更新可）。");
   const app = document.getElementById("app");
   if(!DATA){
@@ -1625,6 +1634,7 @@ function badgesFor(st){
   const b=[];
   if(st.curStreak>=2) b.push({t:`🔥 ${st.curStreak}連勝中`});
   if(st.bestWinOdds>=4) b.push({t:`💎 大穴ハンター ×${st.bestWinOdds.toFixed(1)}`});
+  if(st.perfectHits>=1) b.push({t:`⚡ パーフェクト予言者${st.perfectHits>=2?" ×"+st.perfectHits:""}`});
   if(st.settledCount>=5 && st.hitRate>=0.65) b.push({t:`🛡️ 堅実派 ${Math.round(st.hitRate*100)}%`});
   if(st.maxStake>=300) b.push({t:`🎲 ハイローラー`});
   if(st.balance>=START_COINS*1.5) b.push({t:`📈 億り人`});
@@ -1793,7 +1803,7 @@ function koOddsFor(track, m){
 /* ============ コイン損益の集計 ============ */
 // player = {pred,bets}（自分も友達も同形）。実際の結果に対する損益を算出。
 function tallyCoins(player){
-  let balance = START_COINS, locked = 0, settledWin=0, settledLose=0, betsPlaced=0, hits=0;
+  let balance = START_COINS, locked = 0, settledWin=0, settledLose=0, betsPlaced=0, hits=0, perfectHits=0;
   let biggestWin = 0, bestOdds = 0;
   const pred = player.pred || {group:{},ko:{}};
   const bets = player.bets || {group:{},ko:{}};
@@ -1809,7 +1819,10 @@ function tallyCoins(player){
     const act = actualGroupResult(m.n);
     if(!act){ locked += b.stake; continue; }   // 未確定→ロック中
     if(act.o === pe.o){
-      const win = Math.round(b.stake*(oddsVal-1));
+      let win = Math.round(b.stake*(oddsVal-1));
+      // パーフェクトボーナス：スコアまで的中なら配当を倍に
+      const perfect = Number.isInteger(pe.h)&&Number.isInteger(pe.a)&&pe.h===act.h&&pe.a===act.a;
+      if(perfect){ win = win*PERFECT_MULT; perfectHits++; }
       balance += win; settledWin += win; hits++;
       if(win>biggestWin){ biggestWin=win; }
       if(oddsVal>bestOdds) bestOdds=oddsVal;
@@ -1835,7 +1848,7 @@ function tallyCoins(player){
   }
   const settled = betsPlaced - countPending(player);
   return {balance, locked, available:balance-locked, settledWin, settledLose,
-          betsPlaced, hits, hitRate: settled>0?hits/settled:0, biggestWin, bestOdds};
+          betsPlaced, hits, hitRate: settled>0?hits/settled:0, biggestWin, bestOdds, perfectHits};
 }
 function countPending(player){
   const bets = player.bets || {group:{},ko:{}};
