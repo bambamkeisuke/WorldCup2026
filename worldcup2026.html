@@ -101,6 +101,20 @@ h1 .jst{font-size:10.5px;color:var(--cyan);border:1px solid rgba(125,240,255,.4)
 }
 .mode-switch button.on.pred{background:linear-gradient(135deg,#62b6ff,#2f7fe0);color:#041022;box-shadow:0 2px 18px rgba(77,171,255,.5)}
 .mode-switch button.on.actual{background:linear-gradient(135deg,#3df0a2,#13b86e);color:#02180d;box-shadow:0 2px 18px rgba(30,231,142,.45)}
+#warn-banner{display:none}
+.warn-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 22px;font-size:13px;color:#ffd9a6;
+  background:linear-gradient(180deg,rgba(255,120,90,.22),rgba(255,90,140,.12));border-bottom:1px solid rgba(255,150,90,.4);
+  box-shadow:0 0 26px rgba(255,120,90,.18) inset;animation:warnPulse 2.2s ease-in-out infinite}
+@keyframes warnPulse{0%,100%{box-shadow:0 0 22px rgba(255,120,90,.14) inset}50%{box-shadow:0 0 34px rgba(255,120,90,.3) inset}}
+.warn-head b{color:#ffcaa0}
+.warn-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 22px;font-size:12.5px;background:rgba(255,100,90,.06);border-bottom:1px solid rgba(255,120,90,.12)}
+.warn-time{font-family:var(--disp);color:#ff9166;font-weight:700;font-size:13px;letter-spacing:.5px}
+.warn-teams{font-weight:700;color:var(--text)}
+.warn-jst{color:var(--sub);font-size:11px}
+.warn-row button{background:var(--panel2);border:1px solid rgba(255,150,90,.5);color:#ffd9a6;border-radius:8px;padding:4px 11px;font-size:11.5px;cursor:pointer;font-family:inherit;transition:all .15s}
+.warn-row button:hover{background:rgba(255,150,90,.2)}
+.warn-row .warn-x{border-color:var(--line);color:var(--sub);margin-left:auto}
+.warn-notify{margin-left:auto;background:rgba(125,240,255,.12)!important;border-color:rgba(125,240,255,.5)!important;color:var(--cyan)!important}
 .modebanner{font-size:12px;color:var(--sub);padding:9px 22px;background:rgba(10,16,34,.55);border-bottom:1px solid var(--line)}
 .modebanner b{color:var(--text)}
 main{padding:18px 22px;max-width:1500px;margin:0 auto}
@@ -414,6 +428,7 @@ table.lb .up{color:var(--green)} table.lb .dn{color:var(--red)}
   </div>
   <div class="next-match" id="next-match"></div>
 </header>
+<div id="warn-banner"></div>
 <div class="modebanner" id="modebanner"></div>
 <main id="app"></main>
 <footer>🕐 日時表記はすべて<b>日本時間(JST)</b>に変換済みです（現地とは日付が異なる場合があります）。試合結果はESPN公開データから自動取得・自動反映されます（画面表示時＋🔄ボタン。手入力は不要）。順位決定は 勝点→得失点差→総得点→当該チーム間の成績 を適用（フェアプレーポイント・抽選は未対応）。3位通過8チームの山への振り分けは規定の条件を満たす割り当てを自動探索する簡易方式。予想はこのブラウザ(localStorage)に自動保存されます。</footer>
@@ -1254,6 +1269,7 @@ function render(){
   else if(ui.tab==="ko"){ app.innerHTML = renderKO(); drawBracketLines(); setTimeout(drawBracketLines, 260); }
   else if(ui.tab==="league") app.innerHTML = renderLeague();
   else app.innerHTML = renderCmp();
+  if(typeof refreshWarnings==="function") refreshWarnings();
 }
 
 function renderGroups(){
@@ -1903,7 +1919,56 @@ function renderCountdown(){
   const cd=d>0?`${d}日 ${p(h)}:${p(mi)}:${p(se)}`:`${p(h)}:${p(mi)}:${p(se)}`;
   el.innerHTML=`<span class="nm-tag">NEXT</span><span class="nm-teams">${esc(teams)}</span><span class="nm-jst">${fmtJST(m,false)} JST</span><span class="nm-cd">⏱ <b>${cd}</b></span>`;
 }
-function startCountdown(){ if(_cdTimer) clearInterval(_cdTimer); renderCountdown(); _cdTimer=setInterval(renderCountdown,1000); }
+function startCountdown(){ if(_cdTimer) clearInterval(_cdTimer); tick(); _cdTimer=setInterval(tick,1000); }
+function tick(){ renderCountdown(); refreshWarnings(); }
+
+/* ============ 未予想アラート（開始1時間前） ============ */
+const WARN_MS=60*60*1000;
+let _warnDismiss=new Set(), _warnSig="", _notifyOn=false, _notified=new Set();
+function imminentUnpredicted(){
+  const now=Date.now(), out=[];
+  const consider=(m,ko)=>{
+    const t=kickoffTime(m.n); if(!t) return;
+    const dt=t-now; if(dt<=0 || dt>WARN_MS) return;
+    let teams, predicted;
+    if(ko){
+      const h=slotTeam("pred",m,"home"), a=slotTeam("pred",m,"away");
+      if(!h||!a) return;                 // 対戦カード未確定は予想不可なので対象外
+      predicted=!!state.pred.ko[m.n]; teams=`${teamJa(h)} vs ${teamJa(a)}`;
+    } else { predicted=!!matchEntry("pred",m.n).o; teams=`${teamJa(m.home)} vs ${teamJa(m.away)}`; }
+    if(!predicted) out.push({m,t,dt,ko,teams});
+  };
+  for(const m of DATA.groupMatches) consider(m,false);
+  for(const m of DATA.allKO) consider(m,true);
+  out.sort((a,b)=>a.t-b.t);
+  return out;
+}
+function refreshWarnings(){
+  const el=document.getElementById("warn-banner"); if(!el||!DATA) return;
+  const list=imminentUnpredicted().filter(x=>!_warnDismiss.has(x.m.n));
+  if(_notifyOn) for(const x of list){ if(!_notified.has(x.m.n)){ _notified.add(x.m.n); fireNotify(x); } }
+  const sig=list.map(x=>x.m.n+":"+Math.ceil(x.dt/60000)).join(",")+"|"+(_notifyOn?1:0);
+  if(sig===_warnSig) return;            // 変化なしならDOM更新しない
+  _warnSig=sig;
+  if(!list.length){ el.style.display="none"; el.innerHTML=""; return; }
+  el.style.display="";
+  const rows=list.map(x=>{
+    const mins=Math.ceil(x.dt/60000), tab=x.ko?"ko":"groups";
+    return `<div class="warn-row"><span class="warn-time">あと${mins}分</span><span class="warn-teams">${esc(x.teams)}</span><span class="warn-jst">${fmtJST(x.m,false)} JST</span><button onclick="gotoPredict('${tab}')">予想する</button><button class="warn-x" onclick="dismissWarn(${x.m.n})" title="この警告を消す">✕</button></div>`;
+  }).join("");
+  const notifyBtn=("Notification" in window && !_notifyOn) ? `<button class="warn-notify" onclick="enableNotify()">🔔 ブラウザ通知をON</button>` : "";
+  el.innerHTML=`<div class="warn-head">⚠️ <b>まもなく開始 — 未予想の試合があります</b>${notifyBtn}</div>${rows}`;
+}
+function gotoPredict(tab){ setTab(tab); if(tab==="groups") setMode("pred"); window.scrollTo({top:0,behavior:"smooth"}); }
+function dismissWarn(n){ _warnDismiss.add(n); _warnSig=""; refreshWarnings(); }
+function enableNotify(){
+  if(!("Notification" in window)){ alert("このブラウザは通知に対応していません。"); return; }
+  Notification.requestPermission().then(p=>{ _notifyOn=(p==="granted"); _warnSig=""; refreshWarnings();
+    if(p!=="granted") alert("通知が許可されませんでした。ブラウザの設定から許可できます。"); });
+}
+function fireNotify(x){
+  try{ new Notification("⚽ まもなく開始（未予想）", {body:`${x.teams}\n${fmtJST(x.m,false)} JST 開始 — 予想がまだです！`}); }catch(_){}
+}
 
 /* ============ 3Dティルト & パララックス ============ */
 const TILT_SEL=".group-card,.ko-card,.cmp-card,.champion";
