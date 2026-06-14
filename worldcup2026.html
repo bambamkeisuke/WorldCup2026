@@ -672,6 +672,18 @@ function buildData(){
 /* ============ 状態 ============ */
 const LS_KEY = "wc2026sim_v1";
 const START_COINS = 1000;
+/* ===== オンライン共有ルーム設定 =====
+   幹事がFirebaseの firebaseConfig をここに入れると、友達は設定不要で
+   「合言葉＋名前」だけで参加でき、全員の予想・順位が自動同期される。
+   null のままだとオンライン機能は非表示（コード共有のみ）。 */
+const ROOM_CONFIG = {
+  apiKey: "AIzaSyDtAyygG_zsCBjOYFpgYX2av0uClP-S7Bs",
+  authDomain: "worldcup2026-15961.firebaseapp.com",
+  projectId: "worldcup2026-15961",
+  storageBucket: "worldcup2026-15961.firebasestorage.app",
+  messagingSenderId: "880504374677",
+  appId: "1:880504374677:web:84150682eea8b18663a29c"
+};
 const PLAYER_COLORS = ["#4dabff","#1ee78e","#ffd166","#ff5d7a","#b388ff","#ff9f43","#4dd0e1","#f06292","#9ccc65","#ffca28"];
 function uid(){ return "p" + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36); }
 /* ===== セキュリティ：サニタイズ用ヘルパー ===== */
@@ -737,6 +749,7 @@ function load(){
 }
 function save(){
   localStorage.setItem(LS_KEY, JSON.stringify(state));
+  if(typeof _sync!=="undefined" && _sync.ready) syncPush();   // オンライン時は自動同期
 }
 /* 自分を1プレイヤーとして表現したスナップショット */
 function meSnapshot(){
@@ -1691,6 +1704,9 @@ function renderLeague(){
   }
   html += '</div>';
 
+  // オンラインルーム（幹事がconfig設定時のみ表示）
+  html += renderOnlineBox();
+
   html += '</div>';
   return html;
 }
@@ -1997,11 +2013,92 @@ function applyParallax(){
   document.documentElement.style.setProperty("--par-y",(dy*-18).toFixed(1)+"px");
 }
 
+/* ============ オンライン共有ルーム（Firebase・config埋め込み式） ============ */
+let _sync={db:null,fs:null,unsub:null,ready:false};
+function roomEnabled(){ return !!ROOM_CONFIG; }
+function syncOnline(){ return !!(_sync.ready && state.room && state.room.code); }
+async function loadFirebase(){
+  if(window._fbLib) return window._fbLib;
+  const app =await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+  const fs  =await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const auth=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+  window._fbLib={app,fs,auth}; return window._fbLib;
+}
+async function startSync(){
+  if(!roomEnabled() || !state.room || !state.room.code) return;
+  const {app,fs,auth}=await loadFirebase();
+  if(_sync.unsub){ _sync.unsub(); _sync.unsub=null; }
+  const fbApp=app.initializeApp(ROOM_CONFIG,"wc-"+state.room.code);
+  const a=auth.getAuth(fbApp);
+  const cred=await auth.signInAnonymously(a);
+  state.me.id=cred.user.uid;                 // 所有者＝自分の認証UID
+  const db=fs.getFirestore(fbApp);
+  _sync.db=db; _sync.fs=fs; _sync.ready=true;
+  await syncPush();
+  const col=fs.collection(db,"rooms",state.room.code,"players");
+  _sync.unsub=fs.onSnapshot(col,(snap)=>{
+    snap.docChanges().forEach(ch=>{
+      const d=ch.doc.data()||{};
+      const clean=cleanIncomingPlayer({...d, id:d.id||ch.doc.id});
+      if(!clean || clean.id===state.me.id) return;
+      if(ch.type==="removed") delete state.players[clean.id];
+      else state.players[clean.id]=clean;
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    if(ui.tab==="league") render(); else updatePlayerChip();
+  },(err)=>{ console.warn("onSnapshot",err); setFetchStatus("⚠️ オンライン同期エラー（接続/ルールを確認）"); });
+}
+async function syncPush(){
+  if(!_sync.ready || !_sync.db) return;
+  try{ const {fs,db}=_sync;
+    await fs.setDoc(fs.doc(db,"rooms",state.room.code,"players",state.me.id),
+      {id:state.me.id,name:state.me.name||"あなた",color:state.me.color,pred:state.pred,bets:state.bets,ts:Date.now()});
+  }catch(e){ console.warn("push",e); }
+}
+function initSync(){ if(roomEnabled() && state.room && state.room.code) startSync().catch(e=>console.warn("auto-sync",e)); }
+async function joinRoom(){
+  const code=((document.getElementById("room-code")||{}).value||"").trim().replace(/[^A-Za-z0-9_-]/g,"_").slice(0,40);
+  const name=((document.getElementById("room-name")||{}).value||"").trim();
+  if(!code){ alert("合言葉（部屋コード）を入力してください。"); return; }
+  if(name) state.me.name=sanitizeName(name).slice(0,16);
+  state.room.code=code; save();
+  setFetchStatus("🌐 ルームに参加中…");
+  try{ await startSync(); setFetchStatus("✅ ルームに参加しました"); }
+  catch(e){ console.error(e); const c=(e&&e.code)||"";
+    let msg=(e&&e.message)||e;
+    if(/operation-not-allowed|admin-restricted|configuration-not-found/.test(c)) msg="Firebaseの「匿名ログイン」が有効になっていません。";
+    alert("参加に失敗しました：\n"+msg); _sync.ready=false; }
+  render();
+}
+function leaveRoom(){
+  if(!confirm("ルームから退出しますか？（あなたの予想は端末に残ります）")) return;
+  try{ if(_sync.unsub){_sync.unsub();_sync.unsub=null;}
+    if(_sync.ready&&_sync.fs&&_sync.db) _sync.fs.deleteDoc(_sync.fs.doc(_sync.db,"rooms",state.room.code,"players",state.me.id)).catch(()=>{});
+  }catch(_){}
+  _sync.ready=false;_sync.db=null; state.room.code=""; save(); render();
+}
+function renderOnlineBox(){
+  if(!roomEnabled()) return "";   // 幹事が未設定ならオンライン欄は出さない
+  const on=syncOnline();
+  let html='<div class="league-section"><h3>🌐 オンラインルーム（リアルタイム）</h3>';
+  html+='<div class="online-box">';
+  if(on){
+    html+=`<div class="row"><span class="online-status on">● 参加中（合言葉: ${esc(state.room.code)}）</span><button onclick="leaveRoom()">退出</button></div>`;
+    html+=`<p class="hint">あなたの予想とベットは自動でこのルームに同期されます。友達が同じ合言葉「<b>${esc(state.room.code)}</b>」で参加すると、上の順位表にリアルタイムで反映されます。コードの送り合いは不要です。</p>`;
+  } else {
+    html+=`<p class="hint">同じ<b>合言葉</b>を入れた人どうしが、同じリーグで自動同期されます。コードの送り合いは不要。友達には「URL」と「合言葉」を伝えるだけ。</p>`;
+    html+=`<div class="row"><input id="room-code" placeholder="合言葉（例: tomodachi2026）" value="${esc(state.room.code)}"><input id="room-name" placeholder="表示名" value="${esc(state.me.name)}"><button onclick="joinRoom()">🔌 参加する</button></div>`;
+  }
+  html+='</div></div>';
+  return html;
+}
+
 /* ============ 初期化 ============ */
 buildData();
 load();
 render();
 startCountdown();
+initSync();      // 保存済みのルームがあれば自動再接続
 if(DATA) fetchResults(false); // 起動時に最新の試合結果を自動反映
 </script>
 </body>
