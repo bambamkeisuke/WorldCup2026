@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIFA ワールドカップ 2026 予想シミュレーター</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+:root{
+  --bg:#05070f; --panel:rgba(148,178,255,.055); --panel2:rgba(148,178,255,.13);
+  --line:rgba(148,178,255,.16); --text:#eef3ff; --sub:#90a4c9;
+  --accent:#ffd166; --green:#1ee78e; --red:#ff5d7a; --blue:#4dabff;
+  --q1:rgba(30,231,142,.10); --q3:rgba(255,209,102,.12);
+  --gold-grad:linear-gradient(100deg,#fff3c4,#ffd166 45%,#ff9f43);
+  --blue-grad:linear-gradient(135deg,rgba(77,171,255,.34),rgba(77,171,255,.10));
+  --green-grad:linear-gradient(135deg,rgba(30,231,142,.32),rgba(30,231,142,.08));
+  --disp:Oswald,"Noto Sans JP",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+::selection{background:rgba(255,209,102,.4)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(148,178,255,.22);border-radius:99px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(148,178,255,.45);border:2px solid transparent;background-clip:content-box}
+body{
+  background:var(--bg);color:var(--text);font-size:14px;padding-bottom:64px;min-height:100vh;
+  font-family:"Noto Sans JP","Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif;
+}
+body::before{ /* オーロラ */
+  content:"";position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(1100px 700px at 88% -12%, rgba(77,171,255,.22), transparent 60%),
+    radial-gradient(900px 650px at -8% 28%, rgba(255,159,67,.14), transparent 55%),
+    radial-gradient(1000px 800px at 55% 118%, rgba(30,231,142,.13), transparent 60%),
+    linear-gradient(180deg,#0a1124,#05070f 70%);
+  animation:aurora 16s ease-in-out infinite alternate;
+}
+body::after{ /* ピッチの白線 */
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.045;
+  background:
+    radial-gradient(circle at 50% 42%, transparent 138px, rgba(255,255,255,.9) 139px 141px, transparent 142px),
+    linear-gradient(rgba(255,255,255,.9),rgba(255,255,255,.9)) 50% 0/2px 100% no-repeat;
+}
+@keyframes aurora{from{filter:hue-rotate(0deg)}to{filter:hue-rotate(22deg) saturate(1.3)}}
+header{
+  position:sticky;top:0;z-index:50;padding:14px 22px 0;
+  background:rgba(6,10,22,.74);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);
+  border-bottom:1px solid rgba(255,209,102,.25);box-shadow:0 10px 36px rgba(0,0,0,.5);
+}
+h1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+h1 .cup{font-size:25px;align-self:center;filter:drop-shadow(0 0 12px rgba(255,209,102,.7))}
+h1 .ttl{
+  font-family:var(--disp);font-weight:700;font-size:27px;letter-spacing:3px;white-space:nowrap;
+  background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+h1 .sub{font-size:12px;color:var(--sub);font-weight:500}
+h1 .jst{font-size:10.5px;color:var(--accent);border:1px solid rgba(255,209,102,.45);border-radius:99px;padding:2px 11px;background:rgba(255,209,102,.08);white-space:nowrap;align-self:center}
+.topbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toolbar button{
+  background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;
+  padding:7px 13px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .2s;
+}
+.toolbar button:hover{border-color:rgba(255,209,102,.65);box-shadow:0 0 16px rgba(255,209,102,.22);transform:translateY(-1px)}
+.tabs{display:flex;gap:4px;margin:12px 0 12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px}
+.tabs button{
+  background:none;border:none;color:var(--sub);padding:9px 20px;cursor:pointer;font-size:13.5px;
+  font-weight:700;font-family:inherit;border-radius:10px;letter-spacing:.5px;transition:all .25s;
+}
+.tabs button:hover{color:var(--text)}
+.tabs button.on{background:var(--gold-grad);color:#221500;box-shadow:0 2px 18px rgba(255,193,77,.45)}
+.mode-switch{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:4px;gap:4px}
+.mode-switch button{
+  border:none;background:none;color:var(--sub);padding:8px 18px;border-radius:99px;cursor:pointer;
+  font-size:13px;font-weight:700;font-family:inherit;transition:all .25s;
+}
+.mode-switch button.on.pred{background:linear-gradient(135deg,#62b6ff,#2f7fe0);color:#041022;box-shadow:0 2px 18px rgba(77,171,255,.5)}
+.mode-switch button.on.actual{background:linear-gradient(135deg,#3df0a2,#13b86e);color:#02180d;box-shadow:0 2px 18px rgba(30,231,142,.45)}
+.modebanner{font-size:12px;color:var(--sub);padding:9px 22px;background:rgba(10,16,34,.55);border-bottom:1px solid var(--line)}
+.modebanner b{color:var(--text)}
+main{padding:18px 22px;max-width:1500px;margin:0 auto}
+.groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:16px}
+.group-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 16px;
+  position:relative;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:transform .25s,box-shadow .25s,border-color .25s;
+}
+.group-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold-grad);opacity:.6}
+.group-card:hover{transform:translateY(-3px);border-color:rgba(255,209,102,.45);box-shadow:0 16px 44px rgba(0,0,0,.55),0 0 26px rgba(255,209,102,.07)}
+.group-card h3{font-family:var(--disp);font-size:16px;letter-spacing:2px;color:var(--accent);margin-bottom:9px;display:flex;align-items:center;gap:10px}
+.group-card h3::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,209,102,.5),transparent)}
+table.standings{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:10px}
+table.standings th{color:var(--sub);font-weight:normal;text-align:right;padding:2px 6px;border-bottom:1px solid var(--line);font-size:11px}
+table.standings th.tname{text-align:left}
+table.standings td{padding:4px 6px;text-align:right;border-bottom:1px solid rgba(148,178,255,.08)}
+table.standings td.tname{text-align:left;white-space:nowrap}
+tr.q1 td{background:linear-gradient(90deg,rgba(30,231,142,.17),rgba(30,231,142,.03))}
+tr.q1 td:first-child{box-shadow:inset 3px 0 0 var(--green)}
+tr.q3 td{background:linear-gradient(90deg,rgba(255,209,102,.17),rgba(255,209,102,.03))}
+tr.q3 td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.match-row{
+  display:grid;grid-template-columns:62px 1fr 108px 1fr 64px;align-items:center;gap:4px;
+  padding:4px 2px;border-top:1px dashed rgba(148,178,255,.15);font-size:12.5px;border-radius:8px;transition:background .15s;
+}
+.match-row:hover{background:rgba(148,178,255,.05)}
+.match-row .date{color:var(--sub);font-size:10.5px;line-height:1.25}
+.match-row .home,.match-row .away{display:flex;align-items:center;min-width:0;white-space:nowrap}
+.match-row .home{justify-content:flex-end}
+.match-row .away{justify-content:flex-start}
+.match-row .home .tn,.match-row .away .tn{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.score-in{display:flex;align-items:center;justify-content:center;gap:3px}
+.score-in input{width:32px;background:rgba(5,9,20,.7);color:var(--text);border:1px solid var(--line);border-radius:6px;text-align:center;padding:3px 1px;font-size:13px}
+.score-in input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 10px rgba(255,209,102,.3)}
+img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-align:-2px;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 2px 6px rgba(0,0,0,.45);flex:0 0 auto;margin:0 4px}
+.oc-name{cursor:pointer;border-radius:8px;padding:3px 6px;border:1px solid transparent;transition:all .18s}
+.oc-name:hover{background:var(--panel2);transform:scale(1.02)}
+.oc-name.sel{background:var(--blue-grad);border-color:rgba(77,171,255,.7);box-shadow:0 0 12px rgba(77,171,255,.28)}
+.oc-mid{display:flex;align-items:center;justify-content:center;gap:3px}
+.oc-mid input{width:26px;background:rgba(5,9,20,.7);color:var(--text);border:1px solid rgba(148,178,255,.2);border-radius:6px;text-align:center;padding:2px 0;font-size:12px}
+.oc-mid input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 10px rgba(255,209,102,.3)}
+.oc-btn{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:7px;padding:3px 8px;cursor:pointer;font-size:11.5px;font-family:inherit;transition:all .18s}
+.oc-btn:hover{color:var(--text)}
+.oc-btn.sel{background:var(--blue-grad);border-color:rgba(77,171,255,.7);color:var(--text);box-shadow:0 0 12px rgba(77,171,255,.28)}
+#fetch-status{font-size:11px;color:var(--sub);align-self:center;white-space:nowrap}
+.other-info{font-size:10.5px;color:var(--sub);text-align:center;white-space:nowrap}
+.score-txt{text-align:center;font-weight:bold;font-size:14px;font-family:var(--disp);letter-spacing:1px}
+.judge{font-weight:bold}
+.judge.exact{color:var(--accent);text-shadow:0 0 8px rgba(255,209,102,.5)}
+.judge.outcome{color:var(--green)} .judge.miss{color:var(--red)}
+.thirds-panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 18px;margin-top:16px;
+  position:relative;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.thirds-panel::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold-grad);opacity:.6}
+.thirds-panel h3{font-family:var(--disp);font-size:15px;letter-spacing:1.5px;color:var(--accent);margin-bottom:9px}
+.thirds-list{display:flex;flex-wrap:wrap;gap:6px}
+.third-chip{background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--sub);transition:all .2s}
+.third-chip.in{border-color:rgba(30,231,142,.6);color:var(--text);background:var(--green-grad);box-shadow:0 0 10px rgba(30,231,142,.15)}
+.third-chip .rank{color:var(--sub);font-size:10px;margin-right:4px}
+.hint{font-size:12px;color:var(--sub);margin:6px 0 12px;line-height:1.8}
+/* bracket */
+.bracket-wrap{overflow-x:auto;padding-bottom:10px}
+.bracket{display:flex;gap:22px;min-width:1280px}
+.round{display:flex;flex-direction:column;min-width:215px;flex:1}
+.round h4{
+  text-align:center;font-family:var(--disp);color:var(--accent);font-size:14px;letter-spacing:2.5px;padding:6px 0 8px;
+  background:linear-gradient(transparent,transparent);position:sticky;top:0;
+}
+.round h4::after{content:"";display:block;width:46px;height:2px;margin:6px auto 0;background:var(--gold-grad);border-radius:2px;opacity:.8}
+.round .matches{display:flex;flex-direction:column;justify-content:space-around;flex:1;gap:8px}
+.ko-card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:7px 9px;transition:all .2s}
+.ko-card:hover{border-color:rgba(148,178,255,.45);box-shadow:0 8px 26px rgba(0,0,0,.45);transform:translateY(-1px)}
+.ko-card .meta{font-size:10px;color:var(--sub);margin-bottom:4px;display:flex;justify-content:space-between;gap:6px}
+.ko-team{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:9px;font-size:12.5px;border:1px solid transparent;transition:all .18s}
+.ko-team .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ko-team .sc{font-weight:bold;min-width:20px;text-align:center;font-family:var(--disp);font-size:14px}
+.ko-team.placeholder .nm{color:var(--sub);font-style:italic;font-size:11.5px}
+.ko-team.clickable{cursor:pointer}
+.ko-team.clickable:hover{background:var(--panel2);transform:scale(1.02)}
+.ko-team.picked{background:var(--blue-grad);border-color:rgba(77,171,255,.72);box-shadow:0 0 14px rgba(77,171,255,.3)}
+.ko-team.won{background:var(--green-grad);border-color:rgba(30,231,142,.65);box-shadow:0 0 12px rgba(30,231,142,.22)}
+.ko-team.lost{opacity:.45;filter:saturate(.5)}
+.ko-res{display:flex;align-items:center;gap:5px;justify-content:center;margin-top:5px;flex-wrap:wrap}
+.ko-res .pk{font-size:10.5px;color:var(--green)}
+.champion{
+  position:relative;overflow:hidden;text-align:center;margin-top:10px;padding:16px;border-radius:16px;
+  background:linear-gradient(135deg,rgba(255,209,102,.17),rgba(255,159,67,.05));
+  border:1px solid rgba(255,209,102,.6);box-shadow:0 0 36px rgba(255,193,77,.18);
+}
+.champion::after{
+  content:"";position:absolute;top:-60%;bottom:-60%;left:-45%;width:36%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.22),transparent);
+  transform:skewX(-20deg);animation:shine 3.2s ease-in-out infinite;
+}
+@keyframes shine{0%{left:-45%}55%,100%{left:135%}}
+.champion .t{font-size:12px;color:var(--accent);letter-spacing:2px}
+.champion .nm{
+  font-family:var(--disp);font-size:22px;font-weight:700;margin-top:5px;
+  background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+/* comparison */
+.cmp-cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.cmp-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 22px;min-width:170px;
+  position:relative;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .25s;
+}
+.cmp-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold-grad);opacity:.6}
+.cmp-card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,0,0,.5)}
+.cmp-card .v{
+  font-family:var(--disp);font-size:34px;font-weight:700;letter-spacing:1px;
+  background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.cmp-card .l{font-size:11.5px;color:var(--sub);margin-top:3px}
+.cmp-section{
+  background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 18px;margin-bottom:14px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.cmp-section h3{font-family:var(--disp);font-size:15px;letter-spacing:1.5px;color:var(--accent);margin-bottom:10px}
+table.cmp{width:100%;border-collapse:collapse;font-size:12.5px}
+table.cmp th{color:var(--sub);font-weight:normal;padding:4px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:11.5px}
+table.cmp td{padding:5px 8px;border-bottom:1px solid rgba(148,178,255,.08)}
+table.cmp tr:hover td{background:rgba(148,178,255,.05)}
+.ko-cmp-round{margin-bottom:10px}
+.ko-cmp-round .rt{font-size:13px;font-weight:700;margin-bottom:5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:3px 12px;font-size:12px;transition:all .2s}
+.chip.hit{border-color:rgba(30,231,142,.65);background:var(--green-grad);box-shadow:0 0 10px rgba(30,231,142,.15)}
+.chip.hit::after{content:" ✓";color:var(--green);font-weight:bold}
+footer{
+  position:fixed;bottom:0;left:0;right:0;padding:7px 22px;font-size:10.5px;color:var(--sub);
+  background:rgba(6,10,22,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);
+}
+.empty-note{color:var(--sub);padding:40px;text-align:center;font-size:13px;line-height:2}
+
+/* ===== プレイヤーチップ / ヘッダー右 ===== */
+.head-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.player-chip{
+  display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;font-weight:700;
+  background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:6px 12px;transition:all .2s;
+}
+.player-chip:hover{border-color:rgba(255,209,102,.6);box-shadow:0 0 16px rgba(255,209,102,.18)}
+.player-chip .dot{width:11px;height:11px;border-radius:50%;box-shadow:0 0 8px currentColor}
+.player-chip .coins{color:var(--accent);font-family:var(--disp);letter-spacing:.5px}
+.player-chip .coins .lk{color:var(--sub);font-size:10px;font-family:inherit}
+
+/* ===== ベットバー ===== */
+.match-block{border-top:1px dashed rgba(148,178,255,.15)}
+.match-block .match-row{border-top:none}
+.bet-bar{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:5px 8px 8px 70px;font-size:11px;
+}
+.bet-bar .odds-set{display:flex;gap:4px}
+.bet-bar .od{
+  color:var(--sub);background:rgba(5,9,20,.5);border:1px solid var(--line);border-radius:6px;
+  padding:2px 7px;font-family:var(--disp);letter-spacing:.5px;font-size:11px;
+}
+.bet-bar .od.on{color:#041022;background:linear-gradient(135deg,#ffd166,#ff9f43);border-color:transparent;font-weight:700;box-shadow:0 0 12px rgba(255,193,77,.4)}
+.bet-ctrl{display:flex;align-items:center;gap:4px}
+.bet-ctrl .stake{width:62px;background:rgba(5,9,20,.7);color:var(--accent);border:1px solid rgba(255,209,102,.4);border-radius:6px;text-align:center;padding:3px;font-size:13px;font-weight:700;font-family:var(--disp)}
+.bet-ctrl .stake:focus{outline:none;border-color:var(--accent);box-shadow:0 0 10px rgba(255,209,102,.35)}
+.bet-ctrl button{
+  background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;
+  padding:3px 7px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;
+}
+.bet-ctrl button:hover{border-color:rgba(255,209,102,.6);background:rgba(255,209,102,.12)}
+.bet-ctrl button.allin{border-color:rgba(255,93,122,.5);color:#ff8fa3}
+.bet-ctrl button.allin:hover{background:rgba(255,93,122,.18)}
+.bet-ctrl button.clr{border-color:transparent;color:var(--sub)}
+.bet-bar .bet-note{color:var(--sub)}
+.bet-bar .payout{color:var(--sub)}
+.bet-bar .payout .gain{color:var(--green);font-family:var(--disp);font-size:13px}
+.bet-bar.settled{padding-top:3px}
+.bet-bar.settled .bet-res b{font-family:var(--disp);font-size:13px}
+.bet-bar.settled.win .bet-res{color:var(--green)}
+.bet-bar.settled.lose .bet-res{color:var(--red)}
+.bet-bar.locked .bet-note{color:var(--accent)}
+.bet-bar.ko{padding:7px 4px 2px;flex-direction:column;align-items:stretch;gap:5px;border-top:1px dashed rgba(148,178,255,.15);margin-top:6px}
+.bet-bar.ko .odds-set{flex-wrap:wrap}
+.bet-bar.ko .od{font-size:10px;padding:2px 6px}
+.bet-bar.ko .bet-ctrl{flex-wrap:wrap}
+.bet-bar.ko .bet-ctrl .stake{width:52px}
+.bet-bar.ko .bet-ctrl button{padding:2px 6px;font-size:10px}
+.bet-bar.ko .payout{font-size:10.5px}
+
+/* ===== リーグタブ ===== */
+.league-wrap{display:flex;flex-direction:column;gap:18px}
+.league-section{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px 18px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.league-section::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold-grad);opacity:.6}
+.league-section h3{font-family:var(--disp);font-size:17px;letter-spacing:1.5px;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.league-section h3::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,209,102,.5),transparent)}
+table.lb{width:100%;border-collapse:collapse;font-size:13px}
+table.lb th{color:var(--sub);font-weight:500;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);font-size:11px;white-space:nowrap}
+table.lb th.l{text-align:left}
+table.lb td{padding:8px;text-align:right;border-bottom:1px solid rgba(148,178,255,.08);white-space:nowrap}
+table.lb td.l{text-align:left}
+table.lb tr.me td{background:linear-gradient(90deg,rgba(77,171,255,.14),transparent)}
+table.lb .pname{display:inline-flex;align-items:center;gap:7px;font-weight:700}
+table.lb .pdot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 7px currentColor}
+table.lb .rk{font-family:var(--disp);font-size:15px;color:var(--accent);width:30px;display:inline-block}
+table.lb .coin{font-family:var(--disp);color:var(--accent);font-size:15px}
+table.lb .up{color:var(--green)} table.lb .dn{color:var(--red)}
+.badges{display:flex;flex-wrap:wrap;gap:5px}
+.badge{font-size:10.5px;padding:2px 8px;border-radius:99px;background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.35);color:var(--accent);white-space:nowrap}
+.badge.silver{background:rgba(148,178,255,.12);border-color:var(--line);color:var(--sub)}
+.share-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.share-row textarea{flex:1;min-width:220px;height:54px;background:rgba(5,9,20,.7);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:11px;font-family:monospace;resize:vertical}
+.share-row button,.online-box button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;font-size:12.5px;font-family:inherit;transition:all .2s}
+.share-row button:hover,.online-box button:hover{border-color:rgba(255,209,102,.6);box-shadow:0 0 14px rgba(255,209,102,.18)}
+.online-box{display:flex;flex-direction:column;gap:10px}
+.online-box .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.online-box input,.online-box textarea{background:rgba(5,9,20,.7);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:12px;font-family:inherit}
+.online-box input{min-width:160px}
+.online-box textarea{width:100%;height:90px;font-family:monospace;font-size:11px}
+.online-status{font-size:12px;padding:6px 12px;border-radius:99px;display:inline-flex;align-items:center;gap:6px}
+.online-status.on{background:rgba(30,231,142,.14);border:1px solid rgba(30,231,142,.4);color:var(--green)}
+.online-status.off{background:rgba(148,178,255,.08);border:1px solid var(--line);color:var(--sub)}
+.steps{font-size:12px;color:var(--sub);line-height:1.8;padding-left:2px}
+.steps b{color:var(--text)}
+.friend-view{margin-top:8px}
+.friend-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.friend-tabs button{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:99px;padding:5px 13px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;transition:all .2s}
+.friend-tabs button.on{background:var(--blue-grad);border-color:rgba(77,171,255,.6);color:var(--text)}
+
+@media(max-width:520px){
+  .groups-grid{grid-template-columns:1fr}
+  .match-row{grid-template-columns:40px 1fr 78px 1fr 56px}
+  .bet-bar{padding-left:8px}
+  h1 .ttl{font-size:20px;letter-spacing:1.5px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <h1><span class="cup">🏆</span><span class="ttl">FIFA WORLD CUP 2026</span><span class="sub">予想シミュレーター &amp; 結果確認</span><span class="jst">🕐 日時は日本時間(JST)</span></h1>
+    <div class="head-right">
+      <div class="player-chip" id="player-chip" onclick="editName()" title="クリックで名前を変更">
+        <span class="dot" id="player-dot"></span><span id="player-name">あなた</span>
+        <span class="coins" id="player-coins">🪙 1000</span>
+      </div>
+      <div class="mode-switch">
+        <button id="mode-pred" class="pred" onclick="setMode('pred')">🔮 予想</button>
+        <button id="mode-actual" class="actual" onclick="setMode('actual')">📊 実際の結果</button>
+      </div>
+    </div>
+  </div>
+  <div class="topbar">
+    <nav class="tabs">
+      <button id="tab-groups" onclick="setTab('groups')">グループステージ</button>
+      <button id="tab-ko" onclick="setTab('ko')">決勝トーナメント</button>
+      <button id="tab-cmp" onclick="setTab('cmp')">答え合わせ</button>
+      <button id="tab-league" onclick="setTab('league')">🏅 友達リーグ</button>
+    </nav>
+    <div class="toolbar">
+      <button id="btn-random" onclick="randomFill()">🎲 未入力の予想をランダムで埋める</button>
+      <button onclick="fetchResults(true)">🔄 結果を自動取得</button>
+      <button onclick="exportData()">📤 保存(JSON)</button>
+      <button onclick="document.getElementById('import-file').click()">📥 読込</button>
+      <button onclick="resetTrack('pred')">予想をリセット</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
+      <span id="fetch-status"></span>
+    </div>
+  </div>
+</header>
+<div class="modebanner" id="modebanner"></div>
+<main id="app"></main>
+<footer>🕐 日時表記はすべて<b>日本時間(JST)</b>に変換済みです（現地とは日付が異なる場合があります）。試合結果はESPN公開データから自動取得・自動反映されます（画面表示時＋🔄ボタン。手入力は不要）。順位決定は 勝点→得失点差→総得点→当該チーム間の成績 を適用（フェアプレーポイント・抽選は未対応）。3位通過8チームの山への振り分けは規定の条件を満たす割り当てを自動探索する簡易方式。予想はこのブラウザ(localStorage)に自動保存されます。</footer>
+<script>
+"use strict";
+const RAW = {
+"groups": {
+ "A": ["Mexico","South Africa","South Korea","Czech Republic"],
+ "B": ["Canada","Bosnia and Herzegovina","Qatar","Switzerland"],
+ "C": ["Brazil","Morocco","Haiti","Scotland"],
+ "D": ["United States","Paraguay","Australia","Turkey"],
+ "E": ["Germany","Curaçao","Ivory Coast","Ecuador"],
+ "F": ["Netherlands","Japan","Sweden","Tunisia"],
+ "G": ["Belgium","Egypt","Iran","New Zealand"],
+ "H": ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
+ "I": ["France","Senegal","Iraq","Norway"],
+ "J": ["Argentina","Algeria","Austria","Jordan"],
+ "K": ["Portugal","DR Congo","Uzbekistan","Colombia"],
+ "L": ["England","Croatia","Ghana","Panama"]
+},
+"groupMatches": [
+ {"n":1,"group":"A","home":"Mexico","away":"South Africa","date":"2026-06-11","city":"Mexico City"},
+ {"n":2,"group":"A","home":"South Korea","away":"Czech Republic","date":"2026-06-11","city":"Zapopan"},
+ {"n":3,"group":"B","home":"Canada","away":"Bosnia and Herzegovina","date":"2026-06-12","city":"Toronto"},
+ {"n":4,"group":"D","home":"United States","away":"Paraguay","date":"2026-06-12","city":"Inglewood"},
+ {"n":5,"group":"C","home":"Haiti","away":"Scotland","date":"2026-06-13","city":"Foxborough"},
+ {"n":6,"group":"D","home":"Australia","away":"Turkey","date":"2026-06-13","city":"Vancouver"},
+ {"n":7,"group":"C","home":"Brazil","away":"Morocco","date":"2026-06-13","city":"East Rutherford"},
+ {"n":8,"group":"B","home":"Qatar","away":"Switzerland","date":"2026-06-13","city":"Santa Clara"},
+ {"n":9,"group":"E","home":"Ivory Coast","away":"Ecuador","date":"2026-06-14","city":"Philadelphia"},
+ {"n":10,"group":"E","home":"Germany","away":"Curaçao","date":"2026-06-14","city":"Houston"},
+ {"n":11,"group":"F","home":"Netherlands","away":"Japan","date":"2026-06-14","city":"Arlington"},
+ {"n":12,"group":"F","home":"Sweden","away":"Tunisia","date":"2026-06-14","city":"Guadalupe"},
+ {"n":13,"group":"H","home":"Saudi Arabia","away":"Uruguay","date":"2026-06-15","city":"Miami Gardens"},
+ {"n":14,"group":"H","home":"Spain","away":"Cape Verde","date":"2026-06-15","city":"Atlanta"},
+ {"n":15,"group":"G","home":"Iran","away":"New Zealand","date":"2026-06-15","city":"Inglewood"},
+ {"n":16,"group":"G","home":"Belgium","away":"Egypt","date":"2026-06-15","city":"Seattle"},
+ {"n":17,"group":"I","home":"France","away":"Senegal","date":"2026-06-16","city":"East Rutherford"},
+ {"n":18,"group":"I","home":"Iraq","away":"Norway","date":"2026-06-16","city":"Foxborough"},
+ {"n":19,"group":"J","home":"Argentina","away":"Algeria","date":"2026-06-16","city":"Kansas City"},
+ {"n":20,"group":"J","home":"Austria","away":"Jordan","date":"2026-06-16","city":"Santa Clara"},
+ {"n":21,"group":"L","home":"Ghana","away":"Panama","date":"2026-06-17","city":"Toronto"},
+ {"n":22,"group":"L","home":"England","away":"Croatia","date":"2026-06-17","city":"Arlington"},
+ {"n":23,"group":"K","home":"Portugal","away":"DR Congo","date":"2026-06-17","city":"Houston"},
+ {"n":24,"group":"K","home":"Uzbekistan","away":"Colombia","date":"2026-06-17","city":"Mexico City"},
+ {"n":25,"group":"A","home":"Czech Republic","away":"South Africa","date":"2026-06-18","city":"Atlanta"},
+ {"n":26,"group":"B","home":"Switzerland","away":"Bosnia and Herzegovina","date":"2026-06-18","city":"Inglewood"},
+ {"n":27,"group":"B","home":"Canada","away":"Qatar","date":"2026-06-18","city":"Vancouver"},
+ {"n":28,"group":"A","home":"Mexico","away":"South Korea","date":"2026-06-18","city":"Zapopan"},
+ {"n":29,"group":"C","home":"Brazil","away":"Haiti","date":"2026-06-19","city":"Philadelphia"},
+ {"n":30,"group":"C","home":"Scotland","away":"Morocco","date":"2026-06-19","city":"Foxborough"},
+ {"n":31,"group":"D","home":"Turkey","away":"Paraguay","date":"2026-06-19","city":"Santa Clara"},
+ {"n":32,"group":"D","home":"United States","away":"Australia","date":"2026-06-19","city":"Seattle"},
+ {"n":33,"group":"E","home":"Germany","away":"Ivory Coast","date":"2026-06-20","city":"Toronto"},
+ {"n":34,"group":"E","home":"Ecuador","away":"Curaçao","date":"2026-06-20","city":"Kansas City"},
+ {"n":35,"group":"F","home":"Netherlands","away":"Sweden","date":"2026-06-20","city":"Houston"},
+ {"n":36,"group":"F","home":"Tunisia","away":"Japan","date":"2026-06-20","city":"Guadalupe"},
+ {"n":37,"group":"H","home":"Uruguay","away":"Cape Verde","date":"2026-06-21","city":"Miami Gardens"},
+ {"n":38,"group":"H","home":"Spain","away":"Saudi Arabia","date":"2026-06-21","city":"Atlanta"},
+ {"n":39,"group":"G","home":"Belgium","away":"Iran","date":"2026-06-21","city":"Inglewood"},
+ {"n":40,"group":"G","home":"New Zealand","away":"Egypt","date":"2026-06-21","city":"Vancouver"},
+ {"n":41,"group":"I","home":"Norway","away":"Senegal","date":"2026-06-22","city":"East Rutherford"},
+ {"n":42,"group":"I","home":"France","away":"Iraq","date":"2026-06-22","city":"Philadelphia"},
+ {"n":43,"group":"J","home":"Argentina","away":"Austria","date":"2026-06-22","city":"Arlington"},
+ {"n":44,"group":"J","home":"Jordan","away":"Algeria","date":"2026-06-22","city":"Santa Clara"},
+ {"n":45,"group":"L","home":"England","away":"Ghana","date":"2026-06-23","city":"Foxborough"},
+ {"n":46,"group":"L","home":"Panama","away":"Croatia","date":"2026-06-23","city":"Toronto"},
+ {"n":47,"group":"K","home":"Portugal","away":"Uzbekistan","date":"2026-06-23","city":"Houston"},
+ {"n":48,"group":"K","home":"Colombia","away":"DR Congo","date":"2026-06-23","city":"Zapopan"},
+ {"n":49,"group":"C","home":"Scotland","away":"Brazil","date":"2026-06-24","city":"Miami Gardens"},
+ {"n":50,"group":"C","home":"Morocco","away":"Haiti","date":"2026-06-24","city":"Atlanta"},
+ {"n":51,"group":"B","home":"Switzerland","away":"Canada","date":"2026-06-24","city":"Vancouver"},
+ {"n":52,"group":"B","home":"Bosnia and Herzegovina","away":"Qatar","date":"2026-06-24","city":"Seattle"},
+ {"n":53,"group":"A","home":"Czech Republic","away":"Mexico","date":"2026-06-24","city":"Mexico City"},
+ {"n":54,"group":"A","home":"South Africa","away":"South Korea","date":"2026-06-24","city":"Guadalupe"},
+ {"n":55,"group":"E","home":"Curaçao","away":"Ivory Coast","date":"2026-06-25","city":"Philadelphia"},
+ {"n":56,"group":"E","home":"Ecuador","away":"Germany","date":"2026-06-25","city":"East Rutherford"},
+ {"n":57,"group":"F","home":"Japan","away":"Sweden","date":"2026-06-25","city":"Arlington"},
+ {"n":58,"group":"F","home":"Tunisia","away":"Netherlands","date":"2026-06-25","city":"Kansas City"},
+ {"n":59,"group":"D","home":"Turkey","away":"United States","date":"2026-06-25","city":"Inglewood"},
+ {"n":60,"group":"D","home":"Paraguay","away":"Australia","date":"2026-06-25","city":"Santa Clara"},
+ {"n":61,"group":"I","home":"Norway","away":"France","date":"2026-06-26","city":"Foxborough"},
+ {"n":62,"group":"I","home":"Senegal","away":"Iraq","date":"2026-06-26","city":"Toronto"},
+ {"n":63,"group":"G","home":"Egypt","away":"Iran","date":"2026-06-26","city":"Seattle"},
+ {"n":64,"group":"G","home":"New Zealand","away":"Belgium","date":"2026-06-26","city":"Vancouver"},
+ {"n":65,"group":"H","home":"Cape Verde","away":"Saudi Arabia","date":"2026-06-26","city":"Houston"},
+ {"n":66,"group":"H","home":"Uruguay","away":"Spain","date":"2026-06-26","city":"Zapopan"},
+ {"n":67,"group":"L","home":"Panama","away":"England","date":"2026-06-27","city":"East Rutherford"},
+ {"n":68,"group":"L","home":"Croatia","away":"Ghana","date":"2026-06-27","city":"Philadelphia"},
+ {"n":69,"group":"J","home":"Algeria","away":"Austria","date":"2026-06-27","city":"Kansas City"},
+ {"n":70,"group":"J","home":"Jordan","away":"Argentina","date":"2026-06-27","city":"Arlington"},
+ {"n":71,"group":"K","home":"Colombia","away":"Portugal","date":"2026-06-27","city":"Miami Gardens"},
+ {"n":72,"group":"K","home":"DR Congo","away":"Uzbekistan","date":"2026-06-27","city":"Atlanta"}
+],
+"r32": [
+ {"n":73,"home":"RU-A","away":"RU-B","date":"2026-06-28","city":"Inglewood"},
+ {"n":74,"home":"W-E","away":"3-ABCDF","date":"2026-06-29","city":"Foxborough"},
+ {"n":75,"home":"W-F","away":"RU-C","date":"2026-06-29","city":"Guadalupe"},
+ {"n":76,"home":"W-C","away":"RU-F","date":"2026-06-29","city":"Houston"},
+ {"n":77,"home":"W-I","away":"3-CDFGH","date":"2026-06-30","city":"East Rutherford"},
+ {"n":78,"home":"RU-E","away":"RU-I","date":"2026-06-30","city":"Arlington"},
+ {"n":79,"home":"W-A","away":"3-CEFHI","date":"2026-06-30","city":"Mexico City"},
+ {"n":80,"home":"W-L","away":"3-EHIJK","date":"2026-07-01","city":"Atlanta"},
+ {"n":81,"home":"W-D","away":"3-BEFIJ","date":"2026-07-01","city":"Santa Clara"},
+ {"n":82,"home":"W-G","away":"3-AEHIJ","date":"2026-07-01","city":"Seattle"},
+ {"n":83,"home":"RU-K","away":"RU-L","date":"2026-07-02","city":"Toronto"},
+ {"n":84,"home":"W-H","away":"RU-J","date":"2026-07-02","city":"Inglewood"},
+ {"n":85,"home":"W-B","away":"3-EFGIJ","date":"2026-07-02","city":"Vancouver"},
+ {"n":86,"home":"W-J","away":"RU-H","date":"2026-07-03","city":"Miami Gardens"},
+ {"n":87,"home":"W-K","away":"3-DEIJL","date":"2026-07-03","city":"Kansas City"},
+ {"n":88,"home":"RU-D","away":"RU-G","date":"2026-07-03","city":"Arlington"}
+],
+"r16": [
+ {"n":89,"home":"W74","away":"W77","date":"2026-07-04","city":"Philadelphia"},
+ {"n":90,"home":"W73","away":"W75","date":"2026-07-04","city":"Houston"},
+ {"n":91,"home":"W76","away":"W78","date":"2026-07-05","city":"East Rutherford"},
+ {"n":92,"home":"W79","away":"W80","date":"2026-07-05","city":"Mexico City"},
+ {"n":93,"home":"W83","away":"W84","date":"2026-07-06","city":"Arlington"},
+ {"n":94,"home":"W81","away":"W82","date":"2026-07-06","city":"Seattle"},
+ {"n":95,"home":"W86","away":"W88","date":"2026-07-07","city":"Atlanta"},
+ {"n":96,"home":"W85","away":"W87","date":"2026-07-07","city":"Vancouver"}
+],
+"qf": [
+ {"n":97,"home":"W89","away":"W90","date":"2026-07-09","city":"Foxborough"},
+ {"n":98,"home":"W93","away":"W94","date":"2026-07-10","city":"Inglewood"},
+ {"n":99,"home":"W91","away":"W92","date":"2026-07-11","city":"Miami Gardens"},
+ {"n":100,"home":"W95","away":"W96","date":"2026-07-11","city":"Kansas City"}
+],
+"sf": [
+ {"n":101,"home":"W97","away":"W98","date":"2026-07-14","city":"Arlington"},
+ {"n":102,"home":"W99","away":"W100","date":"2026-07-15","city":"Atlanta"}
+],
+"thirdPlace": {"n":103,"date":"2026-07-18","city":"Miami Gardens"},
+"final": {"n":104,"date":"2026-07-19","city":"East Rutherford"}
+};
+
+/* ============ 国名・都市名 日本語化 ============ */
+const JA = {
+"Mexico":["メキシコ","mx"],"Canada":["カナダ","ca"],"United States":["アメリカ","us"],"USA":["アメリカ","us"],
+"Brazil":["ブラジル","br"],"Argentina":["アルゼンチン","ar"],"Uruguay":["ウルグアイ","uy"],"Colombia":["コロンビア","co"],
+"Ecuador":["エクアドル","ec"],"Paraguay":["パラグアイ","py"],"Bolivia":["ボリビア","bo"],"Chile":["チリ","cl"],
+"Peru":["ペルー","pe"],"Venezuela":["ベネズエラ","ve"],
+"England":["イングランド","gb-eng"],"France":["フランス","fr"],"Spain":["スペイン","es"],"Germany":["ドイツ","de"],
+"Portugal":["ポルトガル","pt"],"Netherlands":["オランダ","nl"],"Belgium":["ベルギー","be"],"Croatia":["クロアチア","hr"],
+"Switzerland":["スイス","ch"],"Austria":["オーストリア","at"],"Scotland":["スコットランド","gb-sct"],"Norway":["ノルウェー","no"],
+"Denmark":["デンマーク","dk"],"Italy":["イタリア","it"],"Wales":["ウェールズ","gb-wls"],"Poland":["ポーランド","pl"],
+"Czechia":["チェコ","cz"],"Czech Republic":["チェコ","cz"],"Slovakia":["スロバキア","sk"],"Slovenia":["スロベニア","si"],
+"Albania":["アルバニア","al"],"North Macedonia":["北マケドニア","mk"],"Bosnia and Herzegovina":["ボスニア・ヘルツェゴビナ","ba"],
+"Republic of Ireland":["アイルランド","ie"],"Ireland":["アイルランド","ie"],"Northern Ireland":["北アイルランド","gb-nir"],
+"Sweden":["スウェーデン","se"],"Ukraine":["ウクライナ","ua"],"Turkey":["トルコ","tr"],"Türkiye":["トルコ","tr"],
+"Romania":["ルーマニア","ro"],"Hungary":["ハンガリー","hu"],"Kosovo":["コソボ","xk"],"Serbia":["セルビア","rs"],"Greece":["ギリシャ","gr"],
+"Japan":["日本","jp"],"South Korea":["韓国","kr"],"Korea Republic":["韓国","kr"],"Australia":["オーストラリア","au"],
+"Iran":["イラン","ir"],"IR Iran":["イラン","ir"],"Saudi Arabia":["サウジアラビア","sa"],"Qatar":["カタール","qa"],
+"Uzbekistan":["ウズベキスタン","uz"],"Jordan":["ヨルダン","jo"],"Iraq":["イラク","iq"],"United Arab Emirates":["UAE","ae"],
+"Indonesia":["インドネシア","id"],"China":["中国","cn"],
+"Morocco":["モロッコ","ma"],"Senegal":["セネガル","sn"],"Egypt":["エジプト","eg"],"Algeria":["アルジェリア","dz"],
+"Tunisia":["チュニジア","tn"],"Ivory Coast":["コートジボワール","ci"],"Côte d'Ivoire":["コートジボワール","ci"],
+"Ghana":["ガーナ","gh"],"Cape Verde":["カーボベルデ","cv"],"Cabo Verde":["カーボベルデ","cv"],"South Africa":["南アフリカ","za"],
+"Nigeria":["ナイジェリア","ng"],"Cameroon":["カメルーン","cm"],"DR Congo":["DRコンゴ","cd"],"Congo DR":["DRコンゴ","cd"],
+"Mali":["マリ","ml"],"Burkina Faso":["ブルキナファソ","bf"],"Gabon":["ガボン","ga"],
+"New Zealand":["ニュージーランド","nz"],"New Caledonia":["ニューカレドニア","nc"],
+"Panama":["パナマ","pa"],"Costa Rica":["コスタリカ","cr"],"Honduras":["ホンジュラス","hn"],"Jamaica":["ジャマイカ","jm"],
+"Curaçao":["キュラソー","cw"],"Curacao":["キュラソー","cw"],"Haiti":["ハイチ","ht"],"Suriname":["スリナム","sr"]
+};
+const CITY_JA = {
+"Atlanta":"アトランタ","Boston":"ボストン","Foxborough":"ボストン","Dallas":"ダラス","Arlington":"ダラス",
+"Guadalajara":"グアダラハラ","Houston":"ヒューストン","Kansas City":"カンザスシティ","Los Angeles":"ロサンゼルス",
+"Inglewood":"ロサンゼルス","Mexico City":"メキシコシティ","Miami":"マイアミ","Miami Gardens":"マイアミ",
+"Monterrey":"モンテレイ","New York":"ニューヨーク","New Jersey":"ニューヨーク","East Rutherford":"ニューヨーク",
+"New York New Jersey":"ニューヨーク","New York/New Jersey":"ニューヨーク","Philadelphia":"フィラデルフィア",
+"San Francisco":"サンフランシスコ","Santa Clara":"サンフランシスコ","San Francisco Bay Area":"サンフランシスコ",
+"Seattle":"シアトル","Toronto":"トロント","Vancouver":"バンクーバー",
+"Zapopan":"グアダラハラ","Guadalupe":"モンテレイ"
+};
+function teamJa(en){ return (JA[en]||[en])[0]; }
+function teamFlag(en){
+  const code = (JA[en]||[])[1];
+  if(!code) return "⚽";
+  return `<img class="flag" src="https://flagcdn.com/w20/${code}.png" srcset="https://flagcdn.com/w40/${code}.png 2x" alt="" onerror="this.style.display='none'">`;
+}
+function teamHTML(en){ return `${teamFlag(en)}<span class="tn">${teamJa(en)}</span>`; }
+function teamHTMLHome(en){ return `<span class="tn">${teamJa(en)}</span>${teamFlag(en)}`; }
+function cityJa(c){ if(!c) return ""; return CITY_JA[c] || c; }
+/* 各試合のキックオフ時刻（UTC）。表示時に日本時間(JST)へ変換する。 */
+const KICKOFF = {
+1:"2026-06-11T19:00Z",2:"2026-06-12T02:00Z",3:"2026-06-12T19:00Z",4:"2026-06-13T01:00Z",5:"2026-06-14T01:00Z",
+6:"2026-06-14T04:00Z",7:"2026-06-13T22:00Z",8:"2026-06-13T19:00Z",9:"2026-06-14T23:00Z",10:"2026-06-14T17:00Z",
+11:"2026-06-14T20:00Z",12:"2026-06-15T02:00Z",13:"2026-06-15T22:00Z",14:"2026-06-15T16:00Z",15:"2026-06-16T01:00Z",
+16:"2026-06-15T19:00Z",17:"2026-06-16T19:00Z",18:"2026-06-16T22:00Z",19:"2026-06-17T01:00Z",20:"2026-06-17T04:00Z",
+21:"2026-06-17T23:00Z",22:"2026-06-17T20:00Z",23:"2026-06-17T17:00Z",24:"2026-06-18T02:00Z",25:"2026-06-18T16:00Z",
+26:"2026-06-18T19:00Z",27:"2026-06-18T22:00Z",28:"2026-06-19T01:00Z",29:"2026-06-20T00:30Z",30:"2026-06-19T22:00Z",
+31:"2026-06-20T03:00Z",32:"2026-06-19T19:00Z",33:"2026-06-20T20:00Z",34:"2026-06-21T00:00Z",35:"2026-06-20T17:00Z",
+36:"2026-06-21T04:00Z",37:"2026-06-21T22:00Z",38:"2026-06-21T16:00Z",39:"2026-06-21T19:00Z",40:"2026-06-22T01:00Z",
+41:"2026-06-23T00:00Z",42:"2026-06-22T21:00Z",43:"2026-06-22T17:00Z",44:"2026-06-23T03:00Z",45:"2026-06-23T20:00Z",
+46:"2026-06-23T23:00Z",47:"2026-06-23T17:00Z",48:"2026-06-24T02:00Z",49:"2026-06-24T22:00Z",50:"2026-06-24T22:00Z",
+51:"2026-06-24T19:00Z",52:"2026-06-24T19:00Z",53:"2026-06-25T01:00Z",54:"2026-06-25T01:00Z",55:"2026-06-25T20:00Z",
+56:"2026-06-25T20:00Z",57:"2026-06-25T23:00Z",58:"2026-06-25T23:00Z",59:"2026-06-26T02:00Z",60:"2026-06-26T02:00Z",
+61:"2026-06-26T19:00Z",62:"2026-06-26T19:00Z",63:"2026-06-27T03:00Z",64:"2026-06-27T03:00Z",65:"2026-06-27T00:00Z",
+66:"2026-06-27T00:00Z",67:"2026-06-27T21:00Z",68:"2026-06-27T21:00Z",69:"2026-06-28T02:00Z",70:"2026-06-28T02:00Z",
+71:"2026-06-27T23:30Z",72:"2026-06-27T23:30Z",
+73:"2026-06-28T19:00Z",74:"2026-06-29T20:30Z",75:"2026-06-30T01:00Z",76:"2026-06-29T17:00Z",77:"2026-06-30T21:00Z",
+78:"2026-06-30T17:00Z",79:"2026-07-01T01:00Z",80:"2026-07-01T16:00Z",81:"2026-07-02T00:00Z",82:"2026-07-01T20:00Z",
+83:"2026-07-02T23:00Z",84:"2026-07-02T19:00Z",85:"2026-07-03T03:00Z",86:"2026-07-03T22:00Z",87:"2026-07-04T01:30Z",
+88:"2026-07-03T18:00Z",89:"2026-07-04T21:00Z",90:"2026-07-04T17:00Z",91:"2026-07-05T20:00Z",92:"2026-07-06T00:00Z",
+93:"2026-07-06T19:00Z",94:"2026-07-07T00:00Z",95:"2026-07-07T16:00Z",96:"2026-07-07T20:00Z",97:"2026-07-09T20:00Z",
+98:"2026-07-10T19:00Z",99:"2026-07-11T21:00Z",100:"2026-07-12T01:00Z",101:"2026-07-14T19:00Z",102:"2026-07-15T19:00Z",
+103:"2026-07-18T21:00Z",104:"2026-07-19T19:00Z"
+};
+function fmtDate(d){
+  if(!d) return "";
+  const dt = new Date(d+"T12:00:00");
+  if(isNaN(dt)) return d;
+  const w = "日月火水木金土"[dt.getDay()];
+  return `${dt.getMonth()+1}/${dt.getDate()}(${w})`;
+}
+function fmtJST(m, br){
+  const utc = KICKOFF[m.n];
+  if(!utc) return fmtDate(m.date);
+  const d = new Date(utc);
+  const p = new Intl.DateTimeFormat("ja-JP",{timeZone:"Asia/Tokyo",month:"numeric",day:"numeric",weekday:"short",hour:"2-digit",minute:"2-digit"}).formatToParts(d);
+  const g = t => (p.find(x=>x.type===t)||{}).value || "";
+  return `${g("month")}/${g("day")}(${g("weekday")})${br?"<br>":" "}${g("hour")}:${g("minute")}`;
+}
+
+/* ============ データ整形 ============ */
+let DATA = null;
+function buildData(){
+  if(!RAW){ return; }
+  DATA = {
+    groups: RAW.groups,
+    groupMatches: RAW.groupMatches,
+    r32: RAW.r32, r16: RAW.r16, qf: RAW.qf, sf: RAW.sf,
+    thirdPlace: Object.assign({home:"L"+RAW.sf[0].n, away:"L"+RAW.sf[1].n, title:"3位決定戦"}, RAW.thirdPlace),
+    final: Object.assign({home:"W"+RAW.sf[0].n, away:"W"+RAW.sf[1].n, title:"決勝"}, RAW.final)
+  };
+  DATA.allKO = [...DATA.r32, ...DATA.r16, ...DATA.qf, ...DATA.sf, DATA.thirdPlace, DATA.final];
+  DATA.koByN = {};
+  DATA.allKO.forEach(m=>DATA.koByN[m.n]=m);
+}
+
+/* ============ 状態 ============ */
+const LS_KEY = "wc2026sim_v1";
+const START_COINS = 1000;
+const PLAYER_COLORS = ["#4dabff","#1ee78e","#ffd166","#ff5d7a","#b388ff","#ff9f43","#4dd0e1","#f06292","#9ccc65","#ffca28"];
+function uid(){ return "p" + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36); }
+let state = {
+  pred:{group:{},ko:{}},      // 自分の予想（計算エンジンが参照）
+  bets:{group:{},ko:{}},      // 自分のベット {[n]:{stake}}（勝敗はpredから）
+  actual:{group:{},ko:{}},    // 共有：実際の結果
+  me:{id:null, name:"", color:PLAYER_COLORS[0]},
+  room:{code:"", fb:null},    // fb: firebaseConfig（オンライン時のみ）
+  players:{}                  // 友達のスナップショット {[id]:{name,color,pred,bets,ts}}
+};
+let ui = {tab:"groups", mode:"pred", viewPlayer:null};
+function ensureLeague(){
+  if(!state.bets) state.bets = {group:{},ko:{}};
+  if(!state.bets.group) state.bets.group = {};
+  if(!state.bets.ko) state.bets.ko = {};
+  if(!state.me) state.me = {id:null, name:"", color:PLAYER_COLORS[0]};
+  if(!state.me.id){ state.me.id = uid(); }
+  if(!state.me.color) state.me.color = PLAYER_COLORS[0];
+  if(!state.room) state.room = {code:"", fb:null};
+  if(!state.players) state.players = {};
+}
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS_KEY));
+    if(s && s.pred && s.actual) state = Object.assign(state, s);
+  }catch(e){}
+  ensureLeague();
+}
+function save(){
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  if(typeof syncPush==="function") syncPush();
+}
+/* 自分を1プレイヤーとして表現したスナップショット */
+function meSnapshot(){
+  return {id:state.me.id, name:state.me.name||"あなた", color:state.me.color,
+          pred:state.pred, bets:state.bets, ts:Date.now(), self:true};
+}
+/* 順位表などで使う全プレイヤー（自分＋友達） */
+function allPlayers(){
+  const list = [meSnapshot()];
+  for(const id of Object.keys(state.players)){
+    if(id===state.me.id) continue;
+    list.push(Object.assign({}, state.players[id], {id}));
+  }
+  return list;
+}
+
+/* ============ 計算エンジン ============ */
+let memo = {};
+function clearMemo(){ memo = {}; }
+
+function groupMatchesOf(g){ return DATA.groupMatches.filter(m=>m.group===g); }
+function matchEntry(track,n){
+  // o: 'h'|'d'|'a'（勝敗）/ h,a: スコア。予想トラックは勝敗のみでも有効、スコアは任意。
+  const s = state[track].group[n] || {};
+  const h = Number.isInteger(s.h) ? s.h : null;
+  const a = Number.isInteger(s.a) ? s.a : null;
+  let o = null;
+  if(h!==null && a!==null) o = h>a ? "h" : (h<a ? "a" : "d");
+  else if(track==="pred" && s.o) o = s.o;
+  return {o,h,a};
+}
+function getGroupScore(track,n){
+  const e = matchEntry(track,n);
+  return (e.h!==null && e.a!==null) ? e : null;
+}
+function groupComplete(track,g){
+  return groupMatchesOf(g).every(m=>matchEntry(track,m.n).o);
+}
+function standings(track,g){
+  const key = "st_"+track+"_"+g;
+  if(memo[key]) return memo[key];
+  const rows = DATA.groups[g].map(id=>({id, pts:0, played:0, gf:0, ga:0, gd:0}));
+  const byId = {}; rows.forEach(r=>byId[r.id]=r);
+  for(const m of groupMatchesOf(g)){
+    const e = matchEntry(track,m.n); if(!e.o) continue;
+    const h=byId[m.home], a=byId[m.away];
+    h.played++; a.played++;
+    if(e.h!==null && e.a!==null){ h.gf+=e.h; h.ga+=e.a; a.gf+=e.a; a.ga+=e.h; }
+    if(e.o==="h") h.pts+=3; else if(e.o==="a") a.pts+=3; else {h.pts++; a.pts++;}
+  }
+  rows.forEach(r=>r.gd=r.gf-r.ga);
+  const cmp = (x,y)=> y.pts-x.pts || y.gd-x.gd || y.gf-x.gf;
+  rows.sort(cmp);
+  // 同成績クラスタは当該チーム間成績で再ソート
+  let i=0;
+  while(i<rows.length){
+    let j=i+1;
+    while(j<rows.length && cmp(rows[i],rows[j])===0) j++;
+    if(j-i>1){
+      const sub = rows.slice(i,j);
+      const ids = new Set(sub.map(t=>t.id));
+      const mini = {}; sub.forEach(t=>mini[t.id]={pts:0,gf:0,ga:0});
+      for(const m of groupMatchesOf(g)){
+        if(!ids.has(m.home)||!ids.has(m.away)) continue;
+        const e = matchEntry(track,m.n); if(!e.o) continue;
+        if(e.h!==null && e.a!==null){
+          mini[m.home].gf+=e.h; mini[m.home].ga+=e.a;
+          mini[m.away].gf+=e.a; mini[m.away].ga+=e.h;
+        }
+        if(e.o==="h") mini[m.home].pts+=3; else if(e.o==="a") mini[m.away].pts+=3; else {mini[m.home].pts++; mini[m.away].pts++;}
+      }
+      sub.sort((x,y)=>{
+        const mx=mini[x.id], my=mini[y.id];
+        return my.pts-mx.pts || (my.gf-my.ga)-(mx.gf-mx.ga) || my.gf-mx.gf || String(x.id).localeCompare(String(y.id));
+      });
+      rows.splice(i, j-i, ...sub);
+    }
+    i=j;
+  }
+  memo[key]=rows;
+  return rows;
+}
+function allGroupsComplete(track){
+  return Object.keys(DATA.groups).every(g=>groupComplete(track,g));
+}
+function thirdRanking(track){
+  // 各グループ3位チームのランキング（入力途中でも暫定で返す。1試合も入力のない3位チームは除外）
+  const key="tr_"+track;
+  if(key in memo) return memo[key];
+  const list = Object.keys(DATA.groups).map(g=>{
+    const t = standings(track,g)[2];
+    return {group:g, id:t.id, pts:t.pts, gd:t.gd, gf:t.gf, played:t.played};
+  }).filter(t=>t.played>0);
+  list.sort((x,y)=> y.pts-x.pts || y.gd-x.gd || y.gf-x.gf || String(x.id).localeCompare(String(y.id)));
+  memo[key]=list;
+  return list;
+}
+function assignThirds(track){
+  // トーナメントへの実際の割り当ては全グループ確定後のみ
+  const key="at_"+track;
+  if(key in memo) return memo[key];
+  if(!allGroupsComplete(track)){ memo[key]=null; return null; }
+  const ranking = thirdRanking(track);
+  const qual = ranking.slice(0,8).map(x=>x.group);
+  const slots = DATA.r32
+    .map(m=>{
+      const src = String(m.home).startsWith("3-") ? m.home : (String(m.away).startsWith("3-") ? m.away : null);
+      return src ? {n:m.n, allowed:String(src).slice(2).split("")} : null;
+    })
+    .filter(Boolean)
+    .sort((a,b)=>a.allowed.length-b.allowed.length);
+  const assign = {}; const used = new Set();
+  function bt(k){
+    if(k===slots.length) return true;
+    const s = slots[k];
+    for(const g of qual){
+      if(used.has(g) || !s.allowed.includes(g)) continue;
+      used.add(g); assign[s.n]=g;
+      if(bt(k+1)) return true;
+      used.delete(g); delete assign[s.n];
+    }
+    return false;
+  }
+  const ok = bt(0);
+  memo[key] = ok ? assign : null;
+  return memo[key];
+}
+function slotTeam(track,m,side){
+  const src = String(m[side]);
+  if(src.startsWith("W-")){ const g=src.slice(2); return groupComplete(track,g)?standings(track,g)[0].id:null; }
+  if(src.startsWith("RU-")){ const g=src.slice(3); return groupComplete(track,g)?standings(track,g)[1].id:null; }
+  if(src.startsWith("3-")){
+    const a = assignThirds(track); if(!a) return null;
+    const g = a[m.n]; return g ? standings(track,g)[2].id : null;
+  }
+  if(/^W\d+$/.test(src)) return koWinner(track, +src.slice(1));
+  if(/^L\d+$/.test(src)) return koLoser(track, +src.slice(1));
+  return null;
+}
+function koWinner(track,n){
+  const m = DATA.koByN[n]; if(!m) return null;
+  const home = slotTeam(track,m,"home"), away = slotTeam(track,m,"away");
+  if(track==="pred"){
+    const pick = state.pred.ko[n];
+    if(pick==="home") return home;
+    if(pick==="away") return away;
+    return null;
+  }
+  const r = state.actual.ko[n];
+  if(!r || !Number.isInteger(r.h) || !Number.isInteger(r.a)) return null;
+  if(r.h>r.a) return home;
+  if(r.a>r.h) return away;
+  if(r.pk==="home") return home;
+  if(r.pk==="away") return away;
+  return null;
+}
+function koLoser(track,n){
+  const m = DATA.koByN[n]; if(!m) return null;
+  const home = slotTeam(track,m,"home"), away = slotTeam(track,m,"away");
+  if(track==="pred"){
+    const pick = state.pred.ko[n];
+    if(pick==="home") return away;
+    if(pick==="away") return home;
+    return null;
+  }
+  const r = state.actual.ko[n];
+  if(!r || !Number.isInteger(r.h) || !Number.isInteger(r.a)) return null;
+  if(r.h>r.a) return away;
+  if(r.a>r.h) return home;
+  if(r.pk==="home") return away;
+  if(r.pk==="away") return home;
+  return null;
+}
+function slotLabelHTML(track,m,side){
+  const id = slotTeam(track,m,side);
+  if(id) return `<span class="nm">${teamHTML(id)}</span>`;
+  const src = String(m[side]);
+  let label = "未定";
+  if(src.startsWith("W-")) label = `${src.slice(2)}組 1位`;
+  else if(src.startsWith("RU-")) label = `${src.slice(3)}組 2位`;
+  else if(src.startsWith("3-")) label = `3位 (${src.slice(2).split("").join("/")})`;
+  else if(/^W\d+$/.test(src)) label = `第${src.slice(1)}試合の勝者`;
+  else if(/^L\d+$/.test(src)) label = `第${src.slice(1)}試合の敗者`;
+  return `<span class="nm">${label}</span>`;
+}
+
+/* ============ 操作 ============ */
+function setMode(m){ ui.mode=m; render(); }
+function setTab(t){ ui.tab=t; render(); }
+function setGroupScore(n, side, val){
+  if(ui.mode!=="pred") return;
+  const v = val==="" ? null : Math.max(0, Math.min(99, parseInt(val,10)));
+  let s = state.pred.group[n] || {};
+  s[side] = Number.isInteger(v) ? v : null;
+  if(s.h==null && s.a==null && !s.o) delete state.pred.group[n];
+  else state.pred.group[n]=s;
+  save(); render();
+}
+function setOutcome(n, o){
+  if(ui.mode!=="pred") return;
+  let s = state.pred.group[n] || {};
+  const hasScore = Number.isInteger(s.h) && Number.isInteger(s.a);
+  if(s.o===o && !hasScore){ delete s.o; }
+  else {
+    s.o = o;
+    if(hasScore){
+      const so = s.h>s.a ? "h" : (s.h<s.a ? "a" : "d");
+      if(so!==o){ s.h=null; s.a=null; } // スコアと矛盾したらスコアをクリア
+    }
+  }
+  if(s.h==null && s.a==null && !s.o) delete state.pred.group[n];
+  else state.pred.group[n]=s;
+  save(); render();
+}
+function pickKo(n, side){
+  if(ui.mode!=="pred") return;
+  state.pred.ko[n] = (state.pred.ko[n]===side) ? null : side;
+  if(state.pred.ko[n]===null) delete state.pred.ko[n];
+  save(); render();
+}
+
+/* ===== ベッティング ===== */
+function matchLocked(n){
+  const k = KICKOFF[n];
+  return k ? (Date.now() >= new Date(k).getTime()) : false;
+}
+function setBet(kind, n, val){
+  if(ui.mode!=="pred") return;
+  const avail = tallyCoins(meSnapshot()).available;
+  let v = val==="" ? 0 : Math.max(0, Math.floor(Number(val)||0));
+  // 既存の賭けを戻した上限＝available+現在の賭け
+  const cur = (state.bets[kind][n] && state.bets[kind][n].stake) || 0;
+  const cap = avail + cur;
+  if(v>cap) v = cap;
+  applyBet(kind, n, v);
+}
+function quickBet(kind, n, amt){
+  if(ui.mode!=="pred") return;
+  const t = tallyCoins(meSnapshot());
+  const cur = (state.bets[kind][n] && state.bets[kind][n].stake) || 0;
+  let v;
+  if(amt==="all") v = cur + t.available;
+  else v = cur + amt;
+  const cap = cur + t.available;
+  if(v>cap) v = cap;
+  applyBet(kind, n, v);
+}
+function applyBet(kind, n, stake){
+  if(matchLocked(n)){ render(); return; }   // キックオフ後は賭けの変更不可
+  if(stake>0){
+    const prev = state.bets[kind][n] || {};
+    state.bets[kind][n] = {stake};
+    // KOは賭けた時点の選択サイドを保存（後で予想変更しても賭けは選択サイドに固定）
+    if(kind==="ko"){
+      const side = state.pred.ko[n];
+      if(!side){ delete state.bets[kind][n]; }       // 勝者未選択なら賭け不可
+      else state.bets[kind][n].side = side;
+    }
+  } else {
+    delete state.bets[kind][n];
+  }
+  save(); render();
+}
+function betBarGroup(m, e){
+  const od = groupOddsFor(m.n);
+  const bet = state.bets.group[m.n];
+  const stake = bet ? bet.stake : 0;
+  const act = actualGroupResult(m.n);
+  const locked = matchLocked(m.n) || !!act;
+  // 決着済み表示
+  if(act && stake>0 && e.o){
+    const win = e.o===act.o;
+    const oddsVal = od ? od[e.o] : 2;
+    const delta = win ? `+${Math.round(stake*(oddsVal-1))}` : `-${stake}`;
+    return `<div class="bet-bar settled ${win?"win":"lose"}">
+      <span class="bet-res">${win?"🎯 的中":"💥 ハズレ"} <b>${delta} 🪙</b>（賭け ${stake} × ${oddsVal.toFixed(2)}）</span></div>`;
+  }
+  const oddsHTML = od ? `<span class="odds-set">
+      <span class="od ${e.o==="h"?"on":""}">勝 ${od.h.toFixed(2)}</span>
+      <span class="od ${e.o==="d"?"on":""}">分 ${od.d.toFixed(2)}</span>
+      <span class="od ${e.o==="a"?"on":""}">負 ${od.a.toFixed(2)}</span></span>` : "";
+  if(locked && stake>0){
+    return `<div class="bet-bar locked">${oddsHTML}<span class="bet-note">🔒 賭け中 ${stake}🪙（キックオフ済み）</span></div>`;
+  }
+  if(!e.o){
+    return `<div class="bet-bar">${oddsHTML}<span class="bet-note">勝敗を選ぶと賭けられます</span></div>`;
+  }
+  const oddsVal = od ? od[e.o] : 2;
+  const payout = stake>0 ? `的中で <b class="gain">+${Math.round(stake*(oddsVal-1))}</b> 🪙` : "";
+  return `<div class="bet-bar">${oddsHTML}
+    <span class="bet-ctrl">🪙<input class="stake" type="number" min="0" value="${stake||""}" placeholder="0" onchange="setBet('group',${m.n},this.value)">
+      <button onclick="quickBet('group',${m.n},10)">+10</button>
+      <button onclick="quickBet('group',${m.n},50)">+50</button>
+      <button onclick="quickBet('group',${m.n},100)">+100</button>
+      <button class="allin" onclick="quickBet('group',${m.n},'all')">ALL</button>
+      ${stake>0?`<button class="clr" onclick="setBet('group',${m.n},0)" title="取消">✕</button>`:""}
+    </span><span class="payout">${payout}</span></div>`;
+}
+function editName(){
+  const cur = state.me.name || "";
+  const nm = prompt("リーグで表示する名前を入力してください：", cur);
+  if(nm===null) return;
+  state.me.name = nm.trim().slice(0,16);
+  save(); render();
+}
+function randomFill(){
+  if(ui.mode!=="pred"){ alert("ランダム埋めは予想モードで使用できます。"); return; }
+  for(const m of DATA.groupMatches){
+    if(!matchEntry("pred",m.n).o){
+      const r = Math.random();
+      state.pred.group[m.n] = {o: r<0.45 ? "h" : (r<0.62 ? "d" : "a")};
+    }
+  }
+  for(const m of DATA.allKO){
+    if(!state.pred.ko[m.n]) state.pred.ko[m.n] = Math.random()<0.5 ? "home" : "away";
+  }
+  save(); render();
+}
+function resetTrack(track){
+  const label = track==="pred" ? "予想" : "試合結果";
+  if(!confirm(`${label}の入力をすべて削除します。よろしいですか？`)) return;
+  state[track] = {group:{},ko:{}};
+  save(); render();
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(state,null,1)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "wc2026_予想と結果.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+/* ============ 結果の自動取得（ESPN公開API） ============ */
+const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z]/g,"");
+const NAME_ALIAS = {"czechia":"czechrepublic","bosniaherzegovina":"bosniaandherzegovina","turkiye":"turkey","usa":"unitedstates","korearepublic":"southkorea","cotedivoire":"ivorycoast","caboverde":"capeverde","congodr":"drcongo","democraticrepublicofthecongo":"drcongo","iriran":"iran","republicofireland":"ireland"};
+const cnorm = s => { const x = norm(s); return NAME_ALIAS[x] || x; };
+const pairKey = (a,b) => [cnorm(a),cnorm(b)].sort().join("|");
+function setFetchStatus(msg){ const el = document.getElementById("fetch-status"); if(el) el.textContent = msg; }
+async function fetchResults(manual){
+  setFetchStatus("🔄 結果を取得中…");
+  try{
+    const r = await fetch("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=200");
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json();
+    const done = (j.events||[]).filter(e=>e.status && e.status.type && e.status.type.completed);
+    let applied = 0;
+    // --- グループステージ: チームの組で照合 ---
+    const fixByPair = {};
+    DATA.groupMatches.forEach(m=>fixByPair[pairKey(m.home,m.away)] = m);
+    const koEvents = [];
+    for(const e of done){
+      const comp = e.competitions[0].competitors;
+      const fm = fixByPair[pairKey(comp[0].team.displayName, comp[1].team.displayName)];
+      const near = fm && KICKOFF[fm.n] && Math.abs(new Date(e.date) - new Date(KICKOFF[fm.n])) < 48*3600*1000;
+      if(fm && near){
+        const hc = comp.find(t=>cnorm(t.team.displayName)===cnorm(fm.home));
+        const ac = comp.find(t=>t!==hc);
+        if(hc && ac){ state.actual.group[fm.n] = {h:+hc.score, a:+ac.score}; applied++; }
+      } else koEvents.push(e);
+    }
+    // --- 決勝T: ラウンド順に、確定した対戦カードへ割り当て ---
+    const roundsSeq = [DATA.r32, DATA.r16, DATA.qf, DATA.sf, [DATA.thirdPlace], [DATA.final]];
+    for(const round of roundsSeq){
+      clearMemo();
+      for(const m of round){
+        const h = slotTeam("actual",m,"home"), a = slotTeam("actual",m,"away");
+        if(!h || !a) continue;
+        const ours = [cnorm(h),cnorm(a)].sort().join("|");
+        const ev = koEvents.find(e=>{
+          const ns = e.competitions[0].competitors.map(t=>cnorm(t.team.displayName)).sort().join("|");
+          return ns===ours && Math.abs(new Date(e.date) - new Date(KICKOFF[m.n])) < 48*3600*1000;
+        });
+        if(!ev) continue;
+        const comp = ev.competitions[0].competitors;
+        const hc = comp.find(t=>cnorm(t.team.displayName)===cnorm(h));
+        const ac = comp.find(t=>t!==hc);
+        const rec = {h:+hc.score, a:+ac.score, pk:null};
+        if(rec.h===rec.a){
+          const hs = +(hc.shootoutScore||0), as = +(ac.shootoutScore||0);
+          if(hs!==as) rec.pk = hs>as ? "home" : "away";
+        }
+        state.actual.ko[m.n] = rec; applied++;
+      }
+    }
+    save(); render();
+    const t = new Intl.DateTimeFormat("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit"}).format(new Date());
+    setFetchStatus(applied>0 ? `✅ ${applied}試合の結果を反映（${t} 確認）` : `✅ 終了済みの試合はまだありません（${t} 確認）`);
+  }catch(err){
+    setFetchStatus("⚠️ 自動取得に失敗（オフライン時は手入力できます）");
+    if(manual) alert("結果の自動取得に失敗しました: " + err.message);
+  }
+}
+
+function importData(input){
+  const f = input.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{
+    try{
+      const s = JSON.parse(fr.result);
+      if(!s.pred || !s.actual) throw new Error("形式が不正です");
+      state = s; save(); render();
+      alert("読み込みました。");
+    }catch(e){ alert("読み込みに失敗しました: "+e.message); }
+  };
+  fr.readAsText(f);
+  input.value = "";
+}
+
+/* ============ 描画 ============ */
+function judgeMatch(pred, act){
+  // pred/act は matchEntry 形式 {o,h,a}。戻り値: exact / outcome / miss
+  if(pred.h!==null && pred.a!==null && pred.h===act.h && pred.a===act.a) return "exact";
+  return pred.o===act.o ? "outcome" : "miss";
+}
+const JUDGE_ICON = {
+  exact:'<span class="judge exact" title="スコアまで的中（+3点）">◎的中</span>',
+  outcome:'<span class="judge outcome" title="勝敗のみ的中（+1点）">○勝敗</span>',
+  miss:'<span class="judge miss" title="ハズレ">×</span>'
+};
+function outcomeText(m, e){
+  if(e.h!==null && e.a!==null) return `${e.h}-${e.a}`;
+  if(e.o==="h") return teamJa(m.home)+"勝";
+  if(e.o==="a") return teamJa(m.away)+"勝";
+  if(e.o==="d") return "引き分け";
+  return "—";
+}
+
+function updatePlayerChip(){
+  const dot = document.getElementById("player-dot");
+  const nm = document.getElementById("player-name");
+  const co = document.getElementById("player-coins");
+  if(!dot) return;
+  dot.style.background = state.me.color;
+  nm.textContent = state.me.name || "あなた（名前未設定）";
+  const t = tallyCoins(meSnapshot());
+  co.innerHTML = `🪙 ${t.balance}` + (t.locked>0 ? ` <span class="lk">(賭け中 ${t.locked})</span>` : "");
+}
+function render(){
+  clearMemo();
+  updatePlayerChip();
+  document.getElementById("mode-pred").classList.toggle("on", ui.mode==="pred");
+  document.getElementById("mode-actual").classList.toggle("on", ui.mode==="actual");
+  ["groups","ko","cmp","league"].forEach(t=>document.getElementById("tab-"+t).classList.toggle("on", ui.tab===t));
+  const modeSwitch = document.querySelector(".mode-switch");
+  if(modeSwitch) modeSwitch.style.visibility = ui.tab==="league" ? "hidden" : "";
+  document.getElementById("btn-random").style.display = (ui.mode==="pred" && ui.tab!=="league") ? "" : "none";
+  document.getElementById("modebanner").innerHTML = ui.tab==="league"
+    ? "🏅 <b>友達リーグ</b>：みんなの順位・コイン残高・称号を比較。コードで予想を共有、またはオンライン部屋でリアルタイム対戦。"
+    : (ui.mode==="pred"
+      ? "🔮 <b>予想＆ベット</b>：勝つと思うチーム名（引き分けは「分」）をクリック。さらにコインを賭けるとオッズに応じて増減します（自信があるほど多く賭けよう）。予想を変えれば以降のトーナメントも自動追従。"
+      : "📊 <b>実際の結果</b>（閲覧専用）：試合結果は終了後に自動で取得・反映されます（🔄でいつでも更新可）。");
+  const app = document.getElementById("app");
+  if(!DATA){
+    app.innerHTML = '<div class="empty-note">データの読み込みに失敗しました。</div>';
+    return;
+  }
+  if(ui.tab==="groups") app.innerHTML = renderGroups();
+  else if(ui.tab==="ko") app.innerHTML = renderKO();
+  else if(ui.tab==="league") app.innerHTML = renderLeague();
+  else app.innerHTML = renderCmp();
+}
+
+function renderGroups(){
+  const track = ui.mode;
+  const ranking = thirdRanking(track);
+  const qualThirds = ranking.length ? new Set(ranking.slice(0,8).map(x=>x.group)) : null;
+  const entered = DATA.groupMatches.filter(m=>matchEntry(track,m.n).o).length;
+  let html = `<p class="hint">${track==="pred"?"予想(勝敗)入力済み":"結果反映済み"}: ${entered} / ${DATA.groupMatches.length} 試合　<span style="color:var(--green)">■</span> 上位2チーム＝決勝T進出　<span style="color:var(--accent)">■</span> 3位通過圏内(暫定)　🕐 日時はすべて日本時間(JST)<br>予想の判定マーク: <span class="judge exact">◎</span>=スコアまで的中(+3点) <span class="judge outcome">○勝敗</span>=勝敗のみ的中(+1点) <span class="judge miss">×</span>=ハズレ</p>`;
+  html += '<div class="groups-grid">';
+  for(const g of Object.keys(DATA.groups)){
+    const st = standings(track,g);
+    html += `<div class="group-card"><h3>グループ ${g}</h3>`;
+    html += '<table class="standings"><tr><th></th><th class="tname">チーム</th><th>試</th><th>勝点</th><th>得失</th><th>総得</th></tr>';
+    st.forEach((r,idx)=>{
+      let cls = idx<2 ? "q1" : (idx===2 && qualThirds && qualThirds.has(g) ? "q3" : "");
+      html += `<tr class="${cls}"><td>${idx+1}</td><td class="tname">${teamHTML(r.id)}</td><td>${r.played}</td><td><b>${r.pts}</b></td><td>${r.gd>0?"+":""}${r.gd}</td><td>${r.gf}</td></tr>`;
+    });
+    html += '</table>';
+    for(const m of groupMatchesOf(g)){
+      const e = matchEntry(track, m.n);
+      let otherInfo = "";
+      if(track==="pred"){
+        const act = getGroupScore("actual", m.n);
+        if(act){
+          otherInfo = `結果 ${act.h}-${act.a}` + (e.o ? " " + JUDGE_ICON[judgeMatch(e,act)] : "");
+        }
+      } else {
+        const pe = matchEntry("pred", m.n);
+        if(pe.o) otherInfo = `予想 ${outcomeText(m,pe)}`;
+      }
+      if(track==="pred"){
+        html += `<div class="match-block"><div class="match-row">
+          <span class="date">${fmtJST(m,true)}</span>
+          <span class="home oc-name ${e.o==="h"?"sel":""}" onclick="setOutcome(${m.n},'h')" title="${teamJa(m.home)}の勝利を予想">${teamHTMLHome(m.home)}</span>
+          <span class="oc-mid">
+            <input type="number" min="0" max="99" placeholder="-" value="${e.h!==null?e.h:""}" onchange="setGroupScore(${m.n},'h',this.value)" title="スコア予想（任意）">
+            <button class="oc-btn ${e.o==="d"?"sel":""}" onclick="setOutcome(${m.n},'d')" title="引き分けを予想">分</button>
+            <input type="number" min="0" max="99" placeholder="-" value="${e.a!==null?e.a:""}" onchange="setGroupScore(${m.n},'a',this.value)" title="スコア予想（任意）">
+          </span>
+          <span class="away oc-name ${e.o==="a"?"sel":""}" onclick="setOutcome(${m.n},'a')" title="${teamJa(m.away)}の勝利を予想">${teamHTML(m.away)}</span>
+          <span class="other-info">${otherInfo}</span>
+        </div>${betBarGroup(m, e)}</div>`;
+      } else {
+        const sc = e.h!==null ? `${e.h} - ${e.a}` : '<span style="color:var(--sub)">未</span>';
+        html += `<div class="match-row">
+          <span class="date">${fmtJST(m,true)}</span>
+          <span class="home">${teamHTMLHome(m.home)}</span>
+          <span class="score-txt">${sc}</span>
+          <span class="away">${teamHTML(m.away)}</span>
+          <span class="other-info">${otherInfo}</span>
+        </div>`;
+      }
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  // 3位ランキング
+  const complete = allGroupsComplete(track);
+  html += '<div class="thirds-panel"><h3>各グループ3位チーム ランキング（上位8チームが決勝T進出）</h3>';
+  if(ranking.length){
+    if(!complete) html += `<p class="hint">⚠️ 暫定順位です。全グループの${track==="pred"?"予想が入力":"試合が終了"}されると確定し、決勝トーナメントの組み合わせに反映されます。</p>`;
+    html += '<div class="thirds-list">';
+    ranking.forEach((t,idx)=>{
+      html += `<span class="third-chip ${idx<8?"in":""}"><span class="rank">${idx+1}.</span>${t.group}組 ${teamHTML(t.id)}（${t.played}試合 勝点${t.pts} / ${t.gd>0?"+":""}${t.gd}）</span>`;
+    });
+    html += '</div>';
+  } else {
+    html += `<p class="hint">${track==="pred"?"予想を入力":"試合結果が反映"}されると、3位チームの暫定ランキングが表示されます。</p>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function koCard(m, track){
+  const home = slotTeam(track,m,"home"), away = slotTeam(track,m,"away");
+  const winner = koWinner(track, m.n);
+  const r = state.actual.ko[m.n] || {};
+  const pick = state.pred.ko[m.n];
+  let rows = "";
+  for(const side of ["home","away"]){
+    const id = side==="home" ? home : away;
+    let cls = "ko-team" + (id ? "" : " placeholder");
+    let sc = "";
+    if(track==="pred"){
+      cls += " clickable";
+      if(pick===side) cls += " picked";
+    } else {
+      const v = side==="home" ? r.h : r.a;
+      if(Number.isInteger(v)) sc = v;
+      if(winner && id){
+        cls += (winner===id) ? " won" : " lost";
+      }
+    }
+    const onclick = track==="pred" ? ` onclick="pickKo(${m.n},'${side}')"` : "";
+    rows += `<div class="${cls}"${onclick}>${slotLabelHTML(track,m,side)}<span class="sc">${sc}</span></div>`;
+  }
+  let res = "";
+  if(track==="actual" && r.pk){
+    res = `<div class="ko-res"><span class="pk">⚽ PK戦勝利: ${winner ? teamJa(winner) : ""}</span></div>`;
+  }
+  const bet = track==="pred" ? betBarKo(m, home, away, pick) : "";
+  const title = m.title ? `<b>${m.title}</b>` : `第${m.n}試合`;
+  return `<div class="ko-card"><div class="meta"><span>${title}</span><span>${fmtJST(m)} ${cityJa(m.city)}</span></div>${rows}${res}${bet}</div>`;
+}
+function betBarKo(m, home, away, pick){
+  const od = matchOdds(home, away, true);
+  const bet = state.bets.ko[m.n];
+  const stake = bet ? bet.stake : 0;
+  const winnerActual = koWinner("actual", m.n);
+  const locked = matchLocked(m.n) || !!winnerActual;
+  // 決着済み
+  if(winnerActual && stake>0 && bet.side){
+    const pickedId = bet.side==="home" ? home : away;
+    const win = pickedId && winnerActual===pickedId;
+    const oddsVal = od ? od[bet.side==="home"?"h":"a"] : 2;
+    const delta = win ? `+${Math.round(stake*(oddsVal-1))}` : `-${stake}`;
+    return `<div class="bet-bar ko settled ${win?"win":"lose"}"><span class="bet-res">${win?"🎯 的中":"💥 ハズレ"} <b>${delta}🪙</b></span></div>`;
+  }
+  if(!home || !away){
+    return `<div class="bet-bar ko"><span class="bet-note">対戦カード確定後に賭けられます</span></div>`;
+  }
+  const oddsHTML = od ? `<span class="odds-set"><span class="od ${pick==="home"?"on":""}">${teamJa(home)} ${od.h.toFixed(2)}</span><span class="od ${pick==="away"?"on":""}">${teamJa(away)} ${od.a.toFixed(2)}</span></span>` : "";
+  if(locked && stake>0){
+    return `<div class="bet-bar ko locked">${oddsHTML}<span class="bet-note">🔒 賭け中 ${stake}🪙</span></div>`;
+  }
+  if(!pick){
+    return `<div class="bet-bar ko">${oddsHTML}<span class="bet-note">勝者を選ぶと賭けられます</span></div>`;
+  }
+  const oddsVal = od ? od[pick==="home"?"h":"a"] : 2;
+  const payout = stake>0 ? `的中で <b class="gain">+${Math.round(stake*(oddsVal-1))}</b>🪙` : "";
+  return `<div class="bet-bar ko">${oddsHTML}<span class="bet-ctrl">🪙<input class="stake" type="number" min="0" value="${stake||""}" placeholder="0" onchange="setBet('ko',${m.n},this.value)">
+    <button onclick="quickBet('ko',${m.n},10)">+10</button>
+    <button onclick="quickBet('ko',${m.n},50)">+50</button>
+    <button onclick="quickBet('ko',${m.n},100)">+100</button>
+    <button class="allin" onclick="quickBet('ko',${m.n},'all')">ALL</button>
+    ${stake>0?`<button class="clr" onclick="setBet('ko',${m.n},0)" title="取消">✕</button>`:""}
+    </span><span class="payout">${payout}</span></div>`;
+}
+
+function renderKO(){
+  const track = ui.mode;
+  const rounds = [
+    ["ラウンド32", DATA.r32], ["ラウンド16", DATA.r16],
+    ["準々決勝", DATA.qf], ["準決勝", DATA.sf], ["決勝・3位決定戦", [DATA.final, DATA.thirdPlace]]
+  ];
+  let html = `<p class="hint">${track==="pred"
+    ? "🔮 勝ち上がると思うチームをクリックして選択。グループ予想を変更すると、ここの組み合わせも自動で更新され、選択済みの予想は枠単位で引き継がれます。"
+    : "📊 実際のトーナメント結果（自動取得・閲覧専用）。グループステージの結果が揃うと組み合わせが確定し、終了した試合から勝ち上がりが反映されます。"}</p>`;
+  html += '<div class="bracket-wrap"><div class="bracket">';
+  for(const [title, ms] of rounds){
+    html += `<div class="round"><h4>${title}</h4><div class="matches">`;
+    for(const m of ms) html += koCard(m, track);
+    if(title==="決勝・3位決定戦"){
+      const champ = koWinner(track, DATA.final.n);
+      if(champ){
+        html += `<div class="champion"><div class="t">${track==="pred"?"🏆 優勝予想":"🏆 優勝"}</div><div class="nm">${teamHTML(champ)}</div></div>`;
+      }
+      const third = koWinner(track, DATA.thirdPlace.n);
+      if(third){
+        html += `<div class="champion" style="border-color:var(--sub)"><div class="t">🥉 3位${track==="pred"?"予想":""}</div><div class="nm">${teamHTML(third)}</div></div>`;
+      }
+    }
+    html += '</div></div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+const KO_POINTS = [
+  {key:"r16", label:"ラウンド16進出", pts:1},
+  {key:"qf",  label:"準々決勝進出", pts:2},
+  {key:"sf",  label:"準決勝進出", pts:3},
+  {key:"final", label:"決勝進出", pts:4},
+  {key:"champ", label:"優勝", pts:6}
+];
+function reachers(track, key){
+  // そのラウンドに「進出した」チーム集合
+  let ms;
+  if(key==="r16") ms = DATA.r16;
+  else if(key==="qf") ms = DATA.qf;
+  else if(key==="sf") ms = DATA.sf;
+  else if(key==="final") ms = [DATA.final];
+  else { const c = koWinner(track, DATA.final.n); return c ? new Set([c]) : new Set(); }
+  const set = new Set();
+  for(const m of ms){
+    const h = slotTeam(track,m,"home"), a = slotTeam(track,m,"away");
+    if(h) set.add(h); if(a) set.add(a);
+  }
+  return set;
+}
+
+function renderCmp(){
+  // グループステージ採点
+  let exact=0, outcome=0, judged=0, gPts=0;
+  let rowsHtml = "";
+  const played = DATA.groupMatches.filter(m=>getGroupScore("actual",m.n));
+  for(const m of played){
+    const act = getGroupScore("actual",m.n);
+    const pred = matchEntry("pred",m.n);
+    let j="", jp=0;
+    if(pred.o){
+      const res = judgeMatch(pred, act);
+      judged++;
+      if(res==="exact"){exact++; jp=3;}
+      else if(res==="outcome"){outcome++; jp=1;}
+      gPts += jp;
+      j = JUDGE_ICON[res] + (jp?` +${jp}`:"");
+    } else j = '<span style="color:var(--sub)">予想なし</span>';
+    rowsHtml += `<tr><td>${fmtJST(m)}</td><td>${m.group}</td><td>${teamHTML(m.home)} vs ${teamHTML(m.away)}</td><td>${pred.o?outcomeText(m,pred):"—"}</td><td><b>${act.h}-${act.a}</b></td><td>${j}</td></tr>`;
+  }
+  // 決勝T採点
+  let koPts=0, koHtml="";
+  for(const r of KO_POINTS){
+    const actSet = reachers("actual", r.key);
+    if(actSet.size===0) continue;
+    const predSet = reachers("pred", r.key);
+    let chips="";
+    for(const id of actSet){
+      const hit = predSet.has(id);
+      if(hit) koPts += r.pts;
+      chips += `<span class="chip ${hit?"hit":""}">${teamHTML(id)}</span>`;
+    }
+    koHtml += `<div class="ko-cmp-round"><div class="rt">${r.label}（的中 +${r.pts}点/チーム）</div><div class="chips">${chips}</div></div>`;
+  }
+  const total = gPts + koPts;
+  let html = `<div class="cmp-cards">
+    <div class="cmp-card"><div class="v">${total}点</div><div class="l">合計スコア</div></div>
+    <div class="cmp-card"><div class="v">${gPts}点</div><div class="l">グループステージ（○勝敗的中+1 / ◎任意のスコア予想まで的中+3）</div></div>
+    <div class="cmp-card"><div class="v">${koPts}点</div><div class="l">決勝トーナメント</div></div>
+    <div class="cmp-card"><div class="v">${exact}◎ ${outcome}○</div><div class="l">的中数（判定済み ${judged}試合）</div></div>
+  </div>`;
+  if(played.length===0){
+    html += '<div class="empty-note">まだ終了した試合がありません。<br>試合が終わると結果が自動で取り込まれ、ここで予想との答え合わせができます。</div>';
+    return html;
+  }
+  if(koHtml) html += `<div class="cmp-section"><h3>決勝トーナメント 答え合わせ</h3>${koHtml}</div>`;
+  html += `<div class="cmp-section"><h3>グループステージ 答え合わせ（結果入力済みの試合）</h3>
+    <table class="cmp"><tr><th>日付</th><th>組</th><th>カード</th><th>予想</th><th>結果</th><th>判定</th></tr>${rowsHtml}</table></div>`;
+  return html;
+}
+
+/* ============ リーグ：称号・共有・順位表 ============ */
+function pickColor(){
+  const used = new Set([state.me.color, ...Object.values(state.players).map(p=>p.color)]);
+  return PLAYER_COLORS.find(c=>!used.has(c)) || PLAYER_COLORS[Object.keys(state.players).length % PLAYER_COLORS.length];
+}
+// 決着済みベットを時系列で取得（連勝判定・称号用）
+function settledBets(player){
+  const pred = player.pred||{group:{},ko:{}}, bets = player.bets||{group:{},ko:{}};
+  const out=[];
+  for(const m of DATA.groupMatches){
+    const b=bets.group&&bets.group[m.n]; if(!b||!(b.stake>0))continue;
+    const pe=predEntry(pred,"group",m.n); if(!pe.o)continue;
+    const act=actualGroupResult(m.n); if(!act)continue;
+    const od=groupOddsFor(m.n); const ov=od?od[pe.o]:2;
+    out.push({t:KICKOFF[m.n]?new Date(KICKOFF[m.n]).getTime():0, stake:b.stake, win:act.o===pe.o, odds:ov});
+  }
+  for(const m of DATA.allKO){
+    const b=bets.ko&&bets.ko[m.n]; if(!b||!(b.stake>0)||!b.side)continue;
+    const w=koWinner("actual",m.n); if(!w)continue;
+    const h=koSlotTeamFrom(pred,m,"home"), a=koSlotTeamFrom(pred,m,"away");
+    const picked=b.side==="home"?h:a; const od=matchOdds(h,a,true); const ov=od?od[b.side==="home"?"h":"a"]:2;
+    out.push({t:KICKOFF[m.n]?new Date(KICKOFF[m.n]).getTime():0, stake:b.stake, win:!!picked&&w===picked, odds:ov});
+  }
+  out.sort((x,y)=>x.t-y.t);
+  return out;
+}
+function maxStakeOf(player){
+  const bets=player.bets||{group:{},ko:{}}; let mx=0;
+  for(const k of ["group","ko"]) for(const n in bets[k]){ const s=bets[k][n].stake||0; if(s>mx)mx=s; }
+  return mx;
+}
+function playerStats(player){
+  const c = tallyCoins(player);
+  const s = tallyScore(player);
+  const hist = settledBets(player);
+  let cur=0, best=0; for(const r of hist){ if(r.win){cur++; if(cur>best)best=cur;} else cur=0; }
+  const winOdds = hist.filter(r=>r.win).map(r=>r.odds);
+  const bestWinOdds = winOdds.length?Math.max(...winOdds):0;
+  return {...c, score:s, settledCount:hist.length, curStreak:cur, bestStreak:best,
+          bestWinOdds, maxStake:maxStakeOf(player)};
+}
+function badgesFor(st){
+  const b=[];
+  if(st.curStreak>=2) b.push({t:`🔥 ${st.curStreak}連勝中`});
+  if(st.bestWinOdds>=4) b.push({t:`💎 大穴ハンター ×${st.bestWinOdds.toFixed(1)}`});
+  if(st.settledCount>=5 && st.hitRate>=0.65) b.push({t:`🛡️ 堅実派 ${Math.round(st.hitRate*100)}%`});
+  if(st.maxStake>=300) b.push({t:`🎲 ハイローラー`});
+  if(st.balance>=START_COINS*1.5) b.push({t:`📈 億り人`});
+  if(st.balance<=0) b.push({t:`💀 一文無し`, s:true});
+  if(st.betsPlaced===0) b.push({t:`🤝 様子見`, s:true});
+  return b;
+}
+function myShareCode(){
+  const snap={id:state.me.id, name:state.me.name||"あなた", color:state.me.color, pred:state.pred, bets:state.bets, ts:Date.now()};
+  return "WC26."+btoa(unescape(encodeURIComponent(JSON.stringify(snap))));
+}
+function copyShareCode(){
+  const code=myShareCode();
+  navigator.clipboard?.writeText(code).then(
+    ()=>setFetchStatus("✅ 共有コードをコピーしました"),
+    ()=>{ const ta=document.getElementById("my-code"); if(ta){ta.value=code; ta.select();} }
+  );
+  const ta=document.getElementById("my-code"); if(ta) ta.value=code;
+}
+function importShareCode(){
+  const ta=document.getElementById("import-code");
+  const code=(ta?ta.value:"").trim();
+  if(!code){ alert("友達の共有コードを貼り付けてください。"); return; }
+  try{
+    const raw=code.replace(/^WC26\./,"");
+    const snap=JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if(!snap.id||!snap.pred){ alert("コードを認識できませんでした。"); return; }
+    if(snap.id===state.me.id){ alert("これはあなた自身のコードです。"); return; }
+    state.players[snap.id]={name:snap.name||"フレンド", color:snap.color||pickColor(),
+      pred:snap.pred, bets:snap.bets||{group:{},ko:{}}, ts:snap.ts||Date.now()};
+    if(ta) ta.value="";
+    save(); render();
+    alert(`「${snap.name||"フレンド"}」さんの予想を取り込みました 🎉`);
+  }catch(e){ alert("読み込みに失敗しました。コードが正しいか確認してください。"); }
+}
+function removeFriend(id){
+  const p=state.players[id]; if(!p) return;
+  if(!confirm(`「${p.name}」さんをリーグから外しますか？`)) return;
+  delete state.players[id];
+  if(ui.viewPlayer===id) ui.viewPlayer=null;
+  save(); render();
+}
+function rankMedal(i){ return i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1)+"."; }
+
+function renderLeague(){
+  const players = allPlayers();
+  const rows = players.map(p=>({p, st:playerStats(p)}));
+  rows.sort((a,b)=> b.st.balance-a.st.balance || b.st.score.total-a.st.score.total);
+  const friendCount = players.length-1;
+
+  let html = '<div class="league-wrap">';
+
+  // 順位表
+  html += '<div class="league-section"><h3>🏆 リーグ順位表</h3>';
+  html += `<p class="hint" style="margin-bottom:10px">全員${START_COINS}🪙スタート。オッズ付きベットの損益で勝負。並びは<b>コイン残高</b>順（同額は予想得点で比較）。${friendCount===0?"　▶ 下の「共有」か「オンライン部屋」で友達を追加しよう。":""}</p>`;
+  html += '<table class="lb"><tr><th>#</th><th class="l">プレイヤー</th><th>🪙残高</th><th>賭け中</th><th>的中率</th><th>予想得点</th><th class="l">称号</th></tr>';
+  rows.forEach((r,i)=>{
+    const st=r.st, isMe=r.p.self;
+    const badges=badgesFor(st).map(b=>`<span class="badge ${b.s?"silver":""}">${b.t}</span>`).join("");
+    const diff = st.balance-START_COINS;
+    const diffHTML = diff===0?"":` <span class="${diff>0?"up":"dn"}">${diff>0?"+":""}${diff}</span>`;
+    html += `<tr class="${isMe?"me":""}">
+      <td><span class="rk">${rankMedal(i)}</span></td>
+      <td class="l"><span class="pname"><span class="pdot" style="color:${r.p.color};background:${r.p.color}"></span>${r.p.name||"名無し"}${isMe?" <span style='color:var(--sub);font-weight:400'>(あなた)</span>":""}</span></td>
+      <td><span class="coin">${st.balance}</span>${diffHTML}</td>
+      <td>${st.locked>0?st.locked:"—"}</td>
+      <td>${st.settledCount>0?Math.round(st.hitRate*100)+"%":"—"}<span style="color:var(--sub);font-size:10px"> ${st.settledCount>0?`(${st.hits}/${st.settledCount})`:""}</span></td>
+      <td>${st.score.total}<span style="color:var(--sub);font-size:10px">点</span></td>
+      <td class="l"><span class="badges">${badges||'<span style="color:var(--sub)">—</span>'}</span></td>
+    </tr>`;
+  });
+  html += '</table></div>';
+
+  // 友達の予想を閲覧
+  if(friendCount>0){
+    html += '<div class="league-section"><h3>🔍 みんなの予想をのぞく</h3>';
+    html += '<div class="friend-tabs">';
+    players.forEach(p=>{
+      if(p.self) return;
+      html += `<button class="${ui.viewPlayer===p.id?"on":""}" onclick="viewFriend('${p.id}')">${p.name||"フレンド"}</button>`;
+    });
+    html += '</div>';
+    const vp = ui.viewPlayer && state.players[ui.viewPlayer] ? allPlayers().find(p=>p.id===ui.viewPlayer) : null;
+    if(vp){
+      html += friendSummary(vp);
+    } else {
+      html += '<p class="hint">上のボタンで友達を選ぶと、その人の優勝予想や注目ベットを表示します。</p>';
+    }
+    html += '</div>';
+  }
+
+  // 共有（コード）
+  html += '<div class="league-section"><h3>🔗 予想を共有（コード）</h3>';
+  html += '<p class="hint">オンライン設定なしでも、コードを送り合えば順位表に反映できます。下の「あなたのコード」をコピーして友達に送り、友達のコードを貼り付けて取り込みます。</p>';
+  html += `<div class="share-row"><textarea id="my-code" readonly placeholder="「コピー」を押すとここに表示されます">${""}</textarea><button onclick="copyShareCode()">📋 自分のコードをコピー</button></div>`;
+  html += `<div class="share-row"><textarea id="import-code" placeholder="友達からもらったコード（WC26....）をここに貼り付け"></textarea><button onclick="importShareCode()">📥 取り込む</button></div>`;
+  if(friendCount>0){
+    html += '<p class="hint" style="margin-top:8px">取り込み済み: ' + players.filter(p=>!p.self).map(p=>`${p.name} <a href="#" onclick="removeFriend('${p.id}');return false" style="color:var(--red)">[外す]</a>`).join("　") + '</p>';
+  }
+  html += '</div>';
+
+  // オンライン部屋
+  html += renderOnlineBox();
+
+  html += '</div>';
+  return html;
+}
+function friendSummary(p){
+  const champ = koSlotTeamFrom(p.pred, DATA.final, "home") && koWinner4(p.pred, DATA.final.n);
+  const st = playerStats(p);
+  let html = '<div class="friend-view">';
+  html += `<p class="hint">🏆 優勝予想: <b>${champ?teamHTML(champ):"<span style='color:var(--sub)'>未確定</span>"}</b>　／　🪙残高 <b style="color:var(--accent)">${st.balance}</b>　／　最大ベット ${st.maxStake||0}🪙</p>`;
+  // 注目ベット（賭け額上位）
+  const bets=[];
+  const pred=p.pred||{group:{},ko:{}}, pb=p.bets||{group:{},ko:{}};
+  for(const m of DATA.groupMatches){ const b=pb.group&&pb.group[m.n]; if(b&&b.stake>0){const pe=predEntry(pred,"group",m.n); bets.push({label:`${teamJa(m.home)} vs ${teamJa(m.away)}`, pick:pe.o==="h"?teamJa(m.home):pe.o==="a"?teamJa(m.away):"引分け", stake:b.stake});} }
+  bets.sort((a,b)=>b.stake-a.stake);
+  if(bets.length){
+    html += '<table class="lb" style="margin-top:8px"><tr><th class="l">カード</th><th class="l">予想</th><th>賭け</th></tr>';
+    bets.slice(0,6).forEach(b=>{ html+=`<tr><td class="l">${b.label}</td><td class="l">${b.pick}</td><td>${b.stake}🪙</td></tr>`; });
+    html += '</table>';
+  } else {
+    html += '<p class="hint">まだベットがありません。</p>';
+  }
+  html += '</div>';
+  return html;
+}
+// 友達pred視点の優勝者（withPred経由）
+function koWinner4(predObj, n){ return withPred(predObj, ()=>koWinner("pred", n)); }
+function viewFriend(id){ ui.viewPlayer = (ui.viewPlayer===id?null:id); render(); }
+
+function renderOnlineBox(){
+  const on = syncOnline();
+  const hasCfg = !!(state.room && state.room.fb);
+  let html = '<div class="league-section"><h3>🌐 オンライン部屋（リアルタイム対戦）</h3>';
+  html += `<div class="online-box">`;
+  html += `<div class="row"><span class="online-status ${on?"on":"off"}">${on?"● 接続中（部屋: "+state.room.code+"）":"○ 未接続（ローカル/コード共有モード）"}</span>`;
+  if(on) html += ` <button onclick="leaveOnline()">退出する</button>`;
+  html += `</div>`;
+  if(!on){
+    html += `<p class="steps">Firebase（無料）を使うと、全員の順位がリアルタイム同期されます。<br>
+      <b>① </b><a href="https://console.firebase.google.com" target="_blank" style="color:var(--blue)">console.firebase.google.com</a> でプロジェクト作成 → ウェブアプリ追加 → <b>firebaseConfig</b> をコピー<br>
+      <b>② </b>左メニュー Build → <b>Firestore Database</b> → 「データベースの作成」→ テストモードで開始<br>
+      <b>③ </b>下に firebaseConfig（{ } 全体）を貼り付け、合言葉（部屋コード）を決めて「接続」</p>`;
+    html += `<textarea id="fb-config" placeholder='ここに firebaseConfig を貼り付け：\nconst firebaseConfig = { apiKey: "...", projectId: "...", ... };\n（{ } の部分だけでもOK）'>${hasCfg?JSON.stringify(state.room.fb,null,1):""}</textarea>`;
+    html += `<div class="row"><input id="room-code" placeholder="部屋コード（合言葉）例: tomodachi2026" value="${state.room.code||""}"><input id="room-name" placeholder="表示名" value="${state.me.name||""}"><button onclick="connectOnline()">🔌 接続する</button></div>`;
+    html += `<p class="hint">※ 合言葉を知っている人だけが同じ部屋に入れます（友達同士の利用を想定した簡易共有です）。</p>`;
+  } else {
+    html += `<p class="hint">あなたの予想とベットは自動でこの部屋に同期されます。友達が同じ合言葉「<b>${state.room.code}</b>」で接続すると、上の順位表にリアルタイムで反映されます。</p>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+/* ============ チーム強度＆オッズ ============ */
+// 0〜100のおおまかな強さ（FIFAランク帯の目安）。未登録は50。
+const STRENGTH = {
+  "Argentina":92,"France":92,"Spain":91,"England":89,"Brazil":88,"Portugal":87,"Germany":85,"Netherlands":85,
+  "Belgium":83,"Croatia":82,"Uruguay":82,"Colombia":81,"Morocco":80,"Switzerland":78,"Japan":77,"Senegal":76,
+  "United States":75,"Mexico":75,"Austria":75,"Norway":75,"Ecuador":74,"South Korea":74,"Turkey":73,"Iran":72,
+  "Sweden":72,"Egypt":71,"Ivory Coast":71,"Algeria":71,"Australia":70,"Scotland":70,"Canada":70,"Paraguay":70,
+  "Bosnia and Herzegovina":70,"Ghana":69,"Tunisia":69,"DR Congo":68,"Qatar":67,"South Africa":67,"Saudi Arabia":66,
+  "Uzbekistan":66,"Panama":65,"Iraq":64,"Cape Verde":63,"Jordan":63,"Curaçao":60,"Haiti":60,"New Zealand":60
+};
+function ratingOf(id){ return STRENGTH[id] != null ? STRENGTH[id] : 50; }
+function fairOdds(p){ return Math.max(1.05, Math.round((1/Math.max(p,0.02))*100)/100); }
+// 両チーム確定時のみ {h,d,a}（KOは{h,a}）。引き分けは接戦ほど確率高め。
+function matchOdds(homeId, awayId, isKO){
+  if(!homeId || !awayId) return null;
+  const dr = ratingOf(homeId) - ratingOf(awayId);
+  const pH = 1/(1+Math.pow(10, -dr/42));
+  if(isKO) return {h:fairOdds(pH), a:fairOdds(1-pH)};
+  const draw = Math.max(0.14, 0.30 - Math.abs(dr)/280);
+  const ph = pH*(1-draw), pa = (1-pH)*(1-draw);
+  return {h:fairOdds(ph), d:fairOdds(draw), a:fairOdds(pa)};
+}
+function groupOddsFor(n){
+  const m = DATA.groupMatches.find(x=>x.n===n);
+  return m ? matchOdds(m.home, m.away, false) : null;
+}
+function koOddsFor(track, m){
+  const h = slotTeam(track,m,"home"), a = slotTeam(track,m,"away");
+  return matchOdds(h, a, true);
+}
+
+/* ============ コイン損益の集計 ============ */
+// player = {pred,bets}（自分も友達も同形）。実際の結果に対する損益を算出。
+function tallyCoins(player){
+  let balance = START_COINS, locked = 0, settledWin=0, settledLose=0, betsPlaced=0, hits=0;
+  let biggestWin = 0, bestOdds = 0;
+  const pred = player.pred || {group:{},ko:{}};
+  const bets = player.bets || {group:{},ko:{}};
+  // グループステージ
+  for(const m of DATA.groupMatches){
+    const b = bets.group && bets.group[m.n];
+    if(!b || !(b.stake>0)) continue;
+    const pe = predEntry(pred, "group", m.n);
+    if(!pe || !pe.o) continue;
+    betsPlaced++;
+    const od = groupOddsFor(m.n);
+    const oddsVal = od ? od[pe.o] : 2;
+    const act = actualGroupResult(m.n);
+    if(!act){ locked += b.stake; continue; }   // 未確定→ロック中
+    if(act.o === pe.o){
+      const win = Math.round(b.stake*(oddsVal-1));
+      balance += win; settledWin += win; hits++;
+      if(win>biggestWin){ biggestWin=win; }
+      if(oddsVal>bestOdds) bestOdds=oddsVal;
+    } else { balance -= b.stake; settledLose += b.stake; }
+  }
+  // 決勝トーナメント
+  for(const m of DATA.allKO){
+    const b = bets.ko && bets.ko[m.n];
+    if(!b || !(b.stake>0) || !b.side) continue;
+    betsPlaced++;
+    const h = koSlotTeamFrom(pred, m, "home"), a = koSlotTeamFrom(pred, m, "away");
+    const pickedId = b.side==="home" ? h : a;
+    const od = matchOdds(h, a, true);
+    const oddsVal = od ? od[b.side==="home"?"h":"a"] : 2;
+    const winnerActual = koWinner("actual", m.n);
+    if(!winnerActual){ locked += b.stake; continue; }
+    if(pickedId && winnerActual===pickedId){
+      const win = Math.round(b.stake*(oddsVal-1));
+      balance += win; settledWin += win; hits++;
+      if(win>biggestWin) biggestWin=win;
+      if(oddsVal>bestOdds) bestOdds=oddsVal;
+    } else { balance -= b.stake; settledLose += b.stake; }
+  }
+  const settled = betsPlaced - countPending(player);
+  return {balance, locked, available:balance-locked, settledWin, settledLose,
+          betsPlaced, hits, hitRate: settled>0?hits/settled:0, biggestWin, bestOdds};
+}
+function countPending(player){
+  const bets = player.bets || {group:{},ko:{}};
+  const pred = player.pred || {group:{},ko:{}};
+  let pend=0;
+  for(const m of DATA.groupMatches){
+    const b = bets.group && bets.group[m.n];
+    if(b && b.stake>0 && predEntry(pred,"group",m.n).o && !actualGroupResult(m.n)) pend++;
+  }
+  for(const m of DATA.allKO){
+    const b = bets.ko && bets.ko[m.n];
+    if(b && b.stake>0 && b.side && !koWinner("actual", m.n)) pend++;
+  }
+  return pend;
+}
+// 任意のpredオブジェクトから勝敗を読む（matchEntryのpred汎用版）
+function predEntry(pred, kind, n){
+  const s = (pred[kind]||{})[n] || {};
+  const h = Number.isInteger(s.h)?s.h:null, a = Number.isInteger(s.a)?s.a:null;
+  let o = null;
+  if(h!==null && a!==null) o = h>a?"h":(h<a?"a":"d");
+  else if(s.o) o = s.o;
+  return {o,h,a};
+}
+function actualGroupResult(n){
+  const s = state.actual.group[n];
+  if(!s || !Number.isInteger(s.h) || !Number.isInteger(s.a)) return null;
+  return {h:s.h, a:s.a, o: s.h>s.a?"h":(s.h<s.a?"a":"d")};
+}
+
+/* ============ 任意プレイヤー視点での計算（エンジン一時差し替え） ============ */
+function withPred(predObj, fn){
+  const saved = state.pred;
+  state.pred = predObj || {group:{},ko:{}};
+  clearMemo();
+  try{ return fn(); } finally { state.pred = saved; clearMemo(); }
+}
+// 友達のpredでスロット解決するためのラッパ
+function koSlotTeamFrom(predObj, m, side){
+  return withPred(predObj, ()=> slotTeam("pred", m, side));
+}
+// 予想得点（既存renderCmpの採点を関数化）
+function tallyScore(player){
+  return withPred(player.pred, ()=>{
+    let gPts=0, exact=0, outcome=0;
+    for(const m of DATA.groupMatches){
+      const act = getGroupScore("actual",m.n);
+      if(!act) continue;
+      const pe = matchEntry("pred", m.n);
+      if(!pe.o) continue;
+      const res = judgeMatch(pe, act);
+      if(res==="exact"){exact++; gPts+=3;}
+      else if(res==="outcome"){outcome++; gPts+=1;}
+    }
+    let koPts=0;
+    for(const r of KO_POINTS){
+      const actSet = reachers("actual", r.key);
+      if(actSet.size===0) continue;
+      const predSet = reachers("pred", r.key);
+      for(const id of actSet) if(predSet.has(id)) koPts+=r.pts;
+    }
+    return {gPts, koPts, total:gPts+koPts, exact, outcome};
+  });
+}
+
+/* ============ オンライン同期（Firebase Firestore） ============ */
+let _sync = {db:null, fs:null, unsub:null, ready:false};
+function syncOnline(){ return !!(state.room && state.room.fb && state.room.code && _sync.ready); }
+function parseFbConfig(text){
+  if(!text) return null;
+  const s=text.indexOf("{"), e=text.lastIndexOf("}");
+  if(s<0||e<=s) return null;
+  try{ const o=(new Function("return ("+text.slice(s,e+1)+")"))(); return (o&&o.projectId)?o:null; }
+  catch(_){ return null; }
+}
+async function loadFirebase(){
+  if(window._fbLib) return window._fbLib;
+  const app = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+  const fs  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  window._fbLib = {app, fs};
+  return window._fbLib;
+}
+async function startSync(){
+  const {app, fs} = await loadFirebase();
+  if(_sync.unsub){ _sync.unsub(); _sync.unsub=null; }
+  const fbApp = app.initializeApp(state.room.fb, "wc-"+state.room.code);
+  const db = fs.getFirestore(fbApp);
+  _sync.db=db; _sync.fs=fs; _sync.ready=true;
+  await syncPush();
+  const col = fs.collection(db, "rooms", state.room.code, "players");
+  _sync.unsub = fs.onSnapshot(col, (snap)=>{
+    snap.docChanges().forEach(ch=>{
+      const d = ch.doc.data();
+      if(!d || d.id===state.me.id) return;
+      if(ch.type==="removed") delete state.players[d.id];
+      else state.players[d.id] = {name:d.name, color:d.color||pickColor(),
+        pred:d.pred||{group:{},ko:{}}, bets:d.bets||{group:{},ko:{}}, ts:d.ts||0};
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    if(ui.tab==="league") render(); else updatePlayerChip();
+  }, (err)=>{ console.warn("onSnapshot error", err); setFetchStatus("⚠️ オンライン同期エラー（ルール/接続を確認）"); });
+}
+async function syncPush(){
+  if(!_sync.ready || !_sync.db) return;
+  try{
+    const {fs, db} = _sync;
+    const ref = fs.doc(db, "rooms", state.room.code, "players", state.me.id);
+    await fs.setDoc(ref, {id:state.me.id, name:state.me.name||"あなた", color:state.me.color,
+      pred:state.pred, bets:state.bets, ts:Date.now()});
+  }catch(e){ console.warn("sync push failed", e); }
+}
+function initSync(){
+  if(state.room && state.room.fb && state.room.code){
+    startSync().catch(e=>{ console.warn("auto-sync failed", e); });
+  }
+}
+async function connectOnline(){
+  const cfgText = (document.getElementById("fb-config")||{}).value || "";
+  const code = ((document.getElementById("room-code")||{}).value || "").trim();
+  const name = ((document.getElementById("room-name")||{}).value || "").trim();
+  const cfg = parseFbConfig(cfgText);
+  if(!cfg){ alert("firebaseConfig を認識できませんでした。\n{ apiKey: ..., projectId: ... } を含めて貼り付けてください。"); return; }
+  if(!code){ alert("部屋コード（合言葉）を入力してください。"); return; }
+  if(name) state.me.name = name.slice(0,16);
+  state.room.fb = cfg; state.room.code = code.replace(/[\/\s]/g,"_").slice(0,40);
+  save();
+  setFetchStatus("🌐 オンライン部屋に接続中…");
+  try{
+    await startSync();
+    setFetchStatus("✅ オンライン部屋に接続しました");
+  }catch(e){
+    console.error(e);
+    alert("接続に失敗しました：\n"+(e&&e.message||e)+"\n\nFirestoreが作成済みか、configが正しいか確認してください。");
+    state.room.fb=null; _sync.ready=false; save();
+  }
+  render();
+}
+function leaveOnline(){
+  if(!confirm("オンライン部屋から退出しますか？（あなたの予想はこの端末に残ります）")) return;
+  try{
+    if(_sync.unsub){ _sync.unsub(); _sync.unsub=null; }
+    if(_sync.ready && _sync.fs && _sync.db){
+      _sync.fs.deleteDoc(_sync.fs.doc(_sync.db, "rooms", state.room.code, "players", state.me.id)).catch(()=>{});
+    }
+  }catch(_){}
+  _sync.ready=false; _sync.db=null;
+  state.room.fb=null; state.room.code="";
+  save(); render();
+}
+
+/* ============ 初期化 ============ */
+buildData();
+load();
+initSync();      // オンライン設定があれば購読開始
+render();
+if(DATA) fetchResults(false); // 起動時に最新の試合結果を自動反映
+</script>
+</body>
+</html>
