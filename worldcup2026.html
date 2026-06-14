@@ -48,11 +48,15 @@ header{
   border-bottom:1px solid rgba(255,209,102,.25);box-shadow:0 10px 36px rgba(0,0,0,.5);
 }
 h1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-h1 .cup{font-size:25px;align-self:center;filter:drop-shadow(0 0 12px rgba(255,209,102,.7))}
+h1 .cup{font-size:25px;align-self:center;filter:drop-shadow(0 0 12px rgba(255,209,102,.7));animation:trophyFloat 3.2s ease-in-out infinite;transform-origin:50% 80%}
+@keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-3px) rotate(5deg)}}
 h1 .ttl{
   font-family:var(--disp);font-weight:700;font-size:27px;letter-spacing:3px;white-space:nowrap;
-  background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  background:linear-gradient(100deg,#ffb24d 0%,#ffd166 28%,#fffbe6 48%,#ffd166 64%,#ff9f43 100%);
+  background-size:240% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:titleShine 7s linear infinite;
 }
+@keyframes titleShine{0%{background-position:0% center}100%{background-position:240% center}}
 h1 .sub{font-size:12px;color:var(--sub);font-weight:500}
 h1 .jst{font-size:10.5px;color:var(--accent);border:1px solid rgba(255,209,102,.45);border-radius:99px;padding:2px 11px;background:rgba(255,209,102,.08);white-space:nowrap;align-self:center}
 .topbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
@@ -262,6 +266,26 @@ footer{
 .bet-bar.ko .bet-ctrl .stake{width:52px}
 .bet-bar.ko .bet-ctrl button{padding:2px 6px;font-size:10px}
 .bet-bar.ko .payout{font-size:10.5px}
+
+/* ===== 演出（紙吹雪キャンバス・祝福バナー） ===== */
+#fx-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9999}
+.fx-banner{
+  position:fixed;top:16%;left:50%;z-index:10000;pointer-events:none;white-space:nowrap;
+  font-family:var(--disp);font-size:clamp(20px,5vw,34px);letter-spacing:2px;font-weight:700;padding:14px 32px;
+  color:#221500;background:var(--gold-grad);border-radius:14px;
+  box-shadow:0 14px 55px rgba(255,193,77,.6),inset 0 0 0 1px rgba(255,255,255,.45);
+  animation:fxBannerPop 1.9s cubic-bezier(.2,1.2,.3,1) forwards;
+}
+@keyframes fxBannerPop{
+  0%{opacity:0;transform:translateX(-50%) scale(.5) translateY(12px)}
+  14%{opacity:1;transform:translateX(-50%) scale(1.1)}
+  28%{transform:translateX(-50%) scale(1)}
+  80%{opacity:1;transform:translateX(-50%) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) scale(1) translateY(-16px)}
+}
+@media(prefers-reduced-motion:reduce){
+  h1 .ttl,h1 .cup{animation:none}
+}
 
 /* ===== 表示切替（グループ別 / 日程順） ===== */
 .view-toggle{display:inline-flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:14px}
@@ -864,9 +888,10 @@ function setOutcome(n, o){
   if(ui.mode!=="pred") return;
   let s = state.pred.group[n] || {};
   const hasScore = Number.isInteger(s.h) && Number.isInteger(s.a);
+  let selected=false;
   if(s.o===o && !hasScore){ delete s.o; }
   else {
-    s.o = o;
+    s.o = o; selected=true;
     if(hasScore){
       const so = s.h>s.a ? "h" : (s.h<s.a ? "a" : "d");
       if(so!==o){ s.h=null; s.a=null; } // スコアと矛盾したらスコアをクリア
@@ -875,12 +900,76 @@ function setOutcome(n, o){
   if(s.h==null && s.a==null && !s.o) delete state.pred.group[n];
   else state.pred.group[n]=s;
   save(); render();
+  if(selected) celebratePick();
 }
 function pickKo(n, side){
   if(ui.mode!=="pred") return;
+  const willSelect = state.pred.ko[n]!==side;
   state.pred.ko[n] = (state.pred.ko[n]===side) ? null : side;
   if(state.pred.ko[n]===null) delete state.pred.ko[n];
   save(); render();
+  if(willSelect){
+    if(n===DATA.final.n && koWinner("pred", DATA.final.n)) celebrateChampion();
+    else celebratePick();
+  }
+}
+
+/* ============ 演出（紙吹雪・コイン・きらめき） ============ */
+const _reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+let _fxCanvas=null, _fxCtx=null, _fxParts=[], _fxRAF=null, _lastPointer={x:innerWidth/2, y:130};
+document.addEventListener("pointerdown", e=>{ _lastPointer={x:e.clientX, y:e.clientY}; }, true);
+function _fxEnsure(){
+  if(_fxCanvas) return;
+  _fxCanvas=document.createElement("canvas"); _fxCanvas.id="fx-canvas";
+  document.body.appendChild(_fxCanvas); _fxCtx=_fxCanvas.getContext("2d");
+  _fxResize(); addEventListener("resize", _fxResize);
+}
+function _fxResize(){ if(_fxCanvas){ _fxCanvas.width=innerWidth; _fxCanvas.height=innerHeight; } }
+function _fxTick(){
+  const ctx=_fxCtx, c=_fxCanvas;
+  ctx.clearRect(0,0,c.width,c.height);
+  for(const p of _fxParts){
+    p.life++; p.vy+=p.g; p.vx*=0.99; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+    const a=Math.max(0,1-p.life/p.max);
+    ctx.save(); ctx.globalAlpha=a; ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+    if(p.coin){ ctx.font=p.size+"px serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("🪙",0,0); }
+    else { ctx.fillStyle=p.color;
+      if(p.shape) ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.62);
+      else { ctx.beginPath(); ctx.arc(0,0,p.size/2,0,7); ctx.fill(); } }
+    ctx.restore();
+  }
+  _fxParts=_fxParts.filter(p=>p.life<p.max && p.y<c.height+60);
+  if(_fxParts.length) _fxRAF=requestAnimationFrame(_fxTick);
+  else { ctx.clearRect(0,0,c.width,c.height); _fxRAF=null; }
+}
+const _FX_COLORS=["#ffd166","#1ee78e","#4dabff","#ff5d7a","#ff9f43","#fff3c4","#b388ff"];
+function confetti(x,y,count,power,coin){
+  if(_reduceMotion) return;
+  _fxEnsure();
+  for(let i=0;i<count;i++){
+    const ang=Math.random()*Math.PI*2, sp=(Math.random()*0.6+0.4)*(power||9);
+    _fxParts.push({ x,y, vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp-(coin?5:4), g:coin?0.3:0.22,
+      size:coin?(Math.random()*8+12):(Math.random()*5+3),
+      color:_FX_COLORS[(Math.random()*_FX_COLORS.length)|0],
+      rot:Math.random()*6, vr:(Math.random()-0.5)*0.3,
+      life:0, max:(coin?50:70)+Math.random()*30, shape:Math.random()<0.55, coin:!!coin });
+  }
+  if(!_fxRAF) _fxRAF=requestAnimationFrame(_fxTick);
+}
+function celebratePick(){ confetti(_lastPointer.x, _lastPointer.y, 16, 9); }
+function celebrateCoin(){ confetti(_lastPointer.x, _lastPointer.y, 7, 7, true); }
+function celebrateChampion(){
+  if(_reduceMotion) return;
+  const W=innerWidth, H=innerHeight;
+  confetti(W*0.5, H*0.32, 130, 15);
+  setTimeout(()=>confetti(W*0.18, H*0.42, 70, 13), 130);
+  setTimeout(()=>confetti(W*0.82, H*0.42, 70, 13), 240);
+  flashBanner("🏆 優勝予想 決定！");
+}
+function flashBanner(text){
+  if(_reduceMotion) return;
+  const el=document.createElement("div"); el.className="fx-banner"; el.textContent=text;
+  document.body.appendChild(el); setTimeout(()=>el.remove(), 1900);
 }
 
 /* ===== ベッティング ===== */
@@ -911,8 +1000,8 @@ function quickBet(kind, n, amt){
 }
 function applyBet(kind, n, stake){
   if(matchLocked(n)){ render(); return; }   // キックオフ後は賭けの変更不可
+  const prevStake = (state.bets[kind][n] && state.bets[kind][n].stake) || 0;
   if(stake>0){
-    const prev = state.bets[kind][n] || {};
     state.bets[kind][n] = {stake};
     // KOは賭けた時点の選択サイドを保存（後で予想変更しても賭けは選択サイドに固定）
     if(kind==="ko"){
@@ -924,6 +1013,7 @@ function applyBet(kind, n, stake){
     delete state.bets[kind][n];
   }
   save(); render();
+  if(stake>prevStake && state.bets[kind][n]) celebrateCoin();
 }
 function betBarGroup(m, e){
   const od = groupOddsFor(m.n);
@@ -979,6 +1069,8 @@ function randomFill(){
     if(!state.pred.ko[m.n]) state.pred.ko[m.n] = Math.random()<0.5 ? "home" : "away";
   }
   save(); render();
+  confetti(innerWidth/2, 150, 80, 13);
+  flashBanner("🎲 予想を一括入力！");
 }
 function resetTrack(track){
   const label = track==="pred" ? "予想" : "試合結果";
