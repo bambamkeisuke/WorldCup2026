@@ -2707,16 +2707,27 @@ async function syncPush(){
   }
 }
 /* ===== 個人ログインコード（スマホ・PCで同じユーザーとして同期） ===== */
-let _acct={db:null,fs:null,unsub:null,ready:false};
+let _acct={db:null,fs:null,unsub:null,ready:false,status:""};   // status: ""|"ok"|"denied"|"error"
 const SESSION = uid();   // この端末セッションの識別子（自分の書き込みエコー判定用）
 function accountActive(){ return !!(_acct.ready && state.account); }
+function setAcctStatus(s){ if(_acct.status===s) return; _acct.status=s; if(document.getElementById("acct-code")||document.querySelector(".acct-box")) refreshSettings(); }
 function accountBoxHTML(){
   if(!roomEnabled()) return "";
   if(accountActive()){
+    const st=_acct.status;
+    const statusLine = st==="ok"
+      ? `<p class="hint" style="font-size:11px;color:var(--green)">✅ クラウド同期ON。同じコードの端末すべてで、予想・ベット・プロフィールが自動同期されます。</p>`
+      : st==="denied"
+      ? `<p class="hint" style="font-size:11px;color:#ff9166">⚠️ ログインはできましたが<b>クラウド同期がブロック</b>されています（Firestoreルール未設定）。Firebaseコンソール→Firestore→ルールに <code>users/{code}</code> の許可を追加して公開してください。</p>`
+      : st==="error"
+      ? `<p class="hint" style="font-size:11px;color:#ff9166">⚠️ 同期エラー（ネット接続を確認してください）。</p>`
+      : `<p class="hint" style="font-size:11px;color:var(--sub)">…クラウドに接続中</p>`;
+    const pushBtn = (st==="ok")
+      ? `<button class="set-btn" style="margin-top:6px" onclick="accountForcePush()">📤 この端末の内容をクラウドに保存（上書き）</button>` : "";
     return `<div class="set-label">端末間ログイン</div>
       <div class="acct-box on"><span class="online-status on">● ログイン中：${esc(state.account)}</span>
         <button class="set-btn" onclick="accountLogout()">ログアウト</button></div>
-      <p class="hint" style="font-size:11px">同じコードを入れた端末すべてで、予想・ベット・プロフィールが自動で同期されます。</p>`;
+      ${statusLine}${pushBtn}`;
   }
   return `<div class="set-label">端末間ログイン（スマホとPCで同じ予想を使う）</div>
     <div class="acct-box"><input id="acct-code" class="set-input" maxlength="60" placeholder="ログインコード（自分で決める・4文字以上）">
@@ -2735,6 +2746,7 @@ async function startAccountSync(){
   _acct.db=db; _acct.fs=fs; _acct.ready=true;
   const ref=fs.doc(db,"users",state.account);
   _acct.unsub=fs.onSnapshot(ref,(snap)=>{
+    setAcctStatus("ok");                                         // スナップショット受信＝読み取り成功
     if(snap.metadata && snap.metadata.hasPendingWrites) return;  // 自分の書き込み（未確定）は無視
     if(!snap.exists()){ accountPush(); return; }                 // クラウド未作成→今の端末の内容で初期化
     const d=snap.data()||{};
@@ -2748,29 +2760,56 @@ async function startAccountSync(){
     render(); updatePlayerChip(); refreshSettings();
     if(_sync.ready) syncPush();                                  // ルームにも反映
     setFetchStatus("ほかの端末の変更を反映しました", "ok");
-  },(err)=>{ console.warn("acct snapshot",err); setFetchStatus("アカウント同期エラー（Firestoreルールを確認）","warn"); });
+  },(err)=>{ console.warn("acct snapshot",err);
+    setAcctStatus((err&&err.code==="permission-denied")?"denied":"error");
+    setFetchStatus("アカウント同期エラー（Firestoreルールを確認）","warn"); });
 }
 async function accountPush(){
   if(!_acct.ready || !_acct.db || !state.account) return;
   const base={pred:state.pred, bets:state.bets, name:state.me.name||"", color:state.me.color, writer:SESSION, ts:Date.now()};
   const docData = state.me.avatar ? {...base, avatar:sanitizeAvatar(state.me.avatar)} : base;
   const ref=_acct.fs.doc(_acct.db,"users",state.account);
-  try{ await _acct.fs.setDoc(ref, docData); }
-  catch(e){ if(state.me.avatar){ try{ await _acct.fs.setDoc(ref, base); }catch(_){ } } else console.warn("acctPush",e); }
+  try{ await _acct.fs.setDoc(ref, docData); setAcctStatus("ok"); }
+  catch(e){
+    if(state.me.avatar){ try{ await _acct.fs.setDoc(ref, base); setAcctStatus("ok"); }catch(e2){ setAcctStatus((e2&&e2.code==="permission-denied")?"denied":"error"); console.warn("acctPush",e2); } }
+    else { setAcctStatus((e&&e.code==="permission-denied")?"denied":"error"); console.warn("acctPush",e); }
+  }
 }
 async function accountLogin(){
   const v=((document.getElementById("acct-code")||{}).value||"");
   const code=v.trim().replace(/[^A-Za-z0-9_-]/g,"_").slice(0,60);
   if(code.length<4){ alert("ログインコードは英数字・-・_ で4文字以上にしてください。"); return; }
-  state.account=code; save();
+  state.account=code; _acct.status=""; save();
   setFetchStatus("アカウントにログイン中…","loading");
   try{
     await startAccountSync();
-    setFetchStatus("ログインしました","ok");
+    // 同期が本当に通るか明示確認（ルール未設定なら permission-denied）
+    try{
+      await _acct.fs.getDoc(_acct.fs.doc(_acct.db,"users",code));
+      setAcctStatus("ok");
+      setFetchStatus("ログインしました（同期ON）","ok");
+    }catch(rerr){
+      const denied=/permission-denied/.test((rerr&&rerr.code)||"");
+      setAcctStatus(denied?"denied":"error");
+      setFetchStatus("ログインしましたが同期できません","warn");
+      if(denied) alert("ログインはできましたが、クラウド同期がFirestoreルールでブロックされています。\n\nFirebaseコンソール → Firestore Database → ルール に、users/{code} を許可する設定を追加して「公開」してください。\n（チャットに貼ったルールをそのまま貼り付ければOKです）");
+    }
   }catch(e){ console.error(e); let msg=(e&&e.message)||e;
     if(/operation-not-allowed|admin-restricted|configuration-not-found/.test((e&&e.code)||"")) msg="Firebaseの「匿名ログイン」が有効になっていません。";
     alert("ログインに失敗しました：\n"+msg); }
   refreshSettings(); render();
+}
+async function accountForcePush(){
+  if(!accountActive()){ alert("ログインしていません。"); return; }
+  setFetchStatus("クラウドに保存中…","loading");
+  await accountPush();
+  if(_acct.status==="ok"){
+    setFetchStatus("クラウドに保存しました","ok");
+    alert("この端末の予想・プロフィールをクラウドに保存しました。\n\n他の端末は自動で最新に更新されます（すぐ反映されない場合は、他の端末でページを再読み込みしてください）。");
+  } else {
+    alert("保存できませんでした。Firestoreルールの設定を確認してください。");
+  }
+  refreshSettings();
 }
 function accountLogout(){
   if(!confirm("ログアウトしますか？\nこの端末に予想は残りますが、他の端末との自動同期は止まります。")) return;
