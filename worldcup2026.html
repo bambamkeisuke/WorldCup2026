@@ -394,6 +394,27 @@ footer{
 .day-header{font-family:var(--disp);font-size:14px;letter-spacing:1px;color:var(--accent);margin:16px 0 2px;padding-bottom:5px;border-bottom:1px solid rgba(255,209,102,.25);display:flex;align-items:center;gap:6px}
 .day-header:first-child{margin-top:4px}
 .gtag{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:5px;font-size:9px;font-weight:700;padding:0 4px;margin-right:3px;font-family:var(--disp);vertical-align:1px}
+/* カレンダー */
+.cal-list{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:8px 14px 16px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.cal-list::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--holo);background-size:220% auto;animation:titleShine 7s linear infinite;opacity:.6}
+.cal-row{display:grid;grid-template-columns:88px 1fr auto;align-items:center;gap:10px;padding:8px 4px;border-top:1px dashed rgba(148,178,255,.13)}
+.cal-time{color:var(--cyan);font-size:11px;font-family:var(--disp);letter-spacing:.5px;line-height:1.3}
+.cal-mid{min-width:0}
+.cal-home,.cal-away{font-weight:700;font-size:12.5px}
+.cal-vs{color:var(--sub);font-size:11px;margin:0 6px}
+.cal-sc{color:var(--text);font-family:var(--disp);font-size:14px;margin:0 6px}
+.cal-meta{display:block;color:var(--sub);font-size:10px;margin-top:2px}
+.cal-bc{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.bc{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap;letter-spacing:.3px}
+.bc-dazn{background:#0a1a2e;color:#00d4ff;border:1px solid rgba(0,212,255,.5)}
+.bc-nhk{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.35)}
+.bc-ntv{background:rgba(255,90,120,.12);color:#ff8fa3;border:1px solid rgba(255,90,120,.4)}
+.bc-fuji{background:rgba(125,240,255,.1);color:var(--cyan);border:1px solid rgba(125,240,255,.4)}
+@media(max-width:520px){
+  .cal-row{grid-template-columns:1fr auto;gap:6px}
+  .cal-time{grid-column:1/-1;color:var(--cyan)}
+  .cal-bc{justify-content:flex-start;grid-column:1/-1}
+}
 
 /* ===== リーグタブ ===== */
 .league-wrap{display:flex;flex-direction:column;gap:18px}
@@ -497,6 +518,7 @@ details.share-fallback[open]>summary{margin-bottom:10px}
     <nav class="tabs">
       <button id="tab-groups" onclick="setTab('groups')">GROUP STAGE</button>
       <button id="tab-ko" onclick="setTab('ko')">KNOCKOUTS</button>
+      <button id="tab-cal" onclick="setTab('cal')">CALENDAR</button>
       <button id="tab-cmp" onclick="setTab('cmp')">SCORECARD</button>
       <button id="tab-league" onclick="setTab('league')">RIVALS<span class="live-dot" id="rivals-live"></span></button>
     </nav>
@@ -1407,13 +1429,13 @@ function render(){
     mt.innerHTML = isActual
       ? '<svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>予想に戻る'
       : '<svg class="ico" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>結果を見る';
-    mt.style.visibility = ui.tab==="league" ? "hidden" : "";
+    mt.style.visibility = (ui.tab==="league"||ui.tab==="cal") ? "hidden" : "";
   }
-  ["groups","ko","cmp","league"].forEach(t=>document.getElementById("tab-"+t).classList.toggle("on", ui.tab===t));
+  ["groups","ko","cal","cmp","league"].forEach(t=>document.getElementById("tab-"+t).classList.toggle("on", ui.tab===t));
   const liveDot=document.getElementById("rivals-live"); if(liveDot) liveDot.classList.toggle("on", typeof syncOnline==="function" && syncOnline());
-  document.getElementById("btn-random").style.display = (ui.mode==="pred" && ui.tab!=="league") ? "" : "none";
+  document.getElementById("btn-random").style.display = (ui.mode==="pred" && ui.tab!=="league" && ui.tab!=="cal") ? "" : "none";
   const mb = document.getElementById("modebanner");
-  const mbText = ui.tab==="league" ? ""
+  const mbText = (ui.tab==="league"||ui.tab==="cal") ? ""
     : (ui.mode==="actual" ? "<b>RESULTS</b>：実際の試合結果（閲覧専用）。終了後に自動取得・反映されます。" : "");
   mb.innerHTML = mbText;
   mb.style.display = mbText ? "" : "none";
@@ -1424,6 +1446,7 @@ function render(){
   }
   if(ui.tab==="groups") app.innerHTML = renderGroups();
   else if(ui.tab==="ko"){ app.innerHTML = renderKO(); _koNatW=0; applyKoZoom(_koZoom,false); setTimeout(()=>{_koNatW=0;applyKoZoom(_koZoom,false);}, 260); }
+  else if(ui.tab==="cal") app.innerHTML = renderSchedule();
   else if(ui.tab==="league") app.innerHTML = renderLeague();
   else app.innerHTML = renderCmp();
   if(typeof refreshWarnings==="function") refreshWarnings();
@@ -1527,6 +1550,63 @@ function renderGroupsByDate(track){
     const day = jstDayLabel(m);
     if(day!==lastDay){ html += `<div class="day-header">${day}</div>`; lastDay = day; }
     html += groupMatchRow(m, track, true);
+  }
+  html += '</div>';
+  return html;
+}
+
+/* ============ カレンダー（全試合＋放送局） ============ */
+// 日本の放送（DAZN=全試合 / NHK=日本戦・開幕・準決・決勝 / 日テレ=日本×チュニジア）。地上波の個別割当は変更の可能性あり。
+function broadcastFor(m, ko){
+  let home, away;
+  if(ko){ home=slotTeam("actual",m,"home")||slotTeam("pred",m,"home"); away=slotTeam("actual",m,"away")||slotTeam("pred",m,"away"); }
+  else { home=m.home; away=m.away; }
+  const jp = home==="Japan"||away==="Japan";
+  const list=[];
+  if(jp){
+    if((home==="Japan"&&away==="Tunisia")||(away==="Japan"&&home==="Tunisia")) list.push("日テレ");
+    list.push("NHK");
+  } else {
+    const isFinal = ko && m.n===DATA.final.n, isThird = ko && m.n===DATA.thirdPlace.n;
+    const isSemi = ko && DATA.sf.some(x=>x.n===m.n), isOpener = !ko && m.n===1;
+    if(isOpener||isSemi||isFinal||isThird) list.push("NHK");
+  }
+  list.push("DAZN");
+  return list;
+}
+const BROADCAST_CLS = {"NHK":"bc-nhk","日テレ":"bc-ntv","フジ":"bc-fuji","DAZN":"bc-dazn"};
+function broadcastHTML(m, ko){
+  return broadcastFor(m,ko).map(c=>`<span class="bc ${BROADCAST_CLS[c]||""}">${c}</span>`).join("");
+}
+function renderSchedule(){
+  // 全試合（グループ＋KO）をキックオフ順に、日付ごとに区切って表示
+  const all = [];
+  for(const m of DATA.groupMatches) all.push({m, t:kickoffTime(m.n), ko:false});
+  for(const m of DATA.allKO) all.push({m, t:kickoffTime(m.n), ko:true});
+  all.sort((a,b)=> a.t-b.t || a.m.n-b.m.n);
+  let html = `<p class="hint">全104試合の日程と放送（日本）。<b>DAZN＝全試合配信</b>／NHK＝日本戦・開幕・準決勝・決勝ほか。決勝トーナメントは対戦カードが決まり次第このカレンダーにも自動反映されます。<br><span style="opacity:.7">※地上波の個別割当は変更の可能性があります。</span></p>`;
+  html += '<div class="cal-list">';
+  let lastDay="";
+  for(const {m,ko} of all){
+    const day = jstDayLabel(m);
+    if(day!==lastDay){ html += `<div class="day-header">${day}</div>`; lastDay=day; }
+    let cardHTML, sc="";
+    if(ko){
+      const h=slotTeam("actual",m,"home"), a=slotTeam("actual",m,"away");
+      const r=state.actual.ko[m.n]||{};
+      if(Number.isInteger(r.h)&&Number.isInteger(r.a)) sc=`<span class="cal-sc">${r.h}-${r.a}${r.pk?" (PK)":""}</span>`;
+      cardHTML = `<span class="cal-home">${slotLabelHTML("actual",m,"home")}</span><span class="cal-vs">${sc||"vs"}</span><span class="cal-away">${slotLabelHTML("actual",m,"away")}</span>`;
+    } else {
+      const act=actualGroupResult(m.n);
+      if(act) sc=`<span class="cal-sc">${act.h}-${act.a}</span>`;
+      cardHTML = `<span class="cal-home">${teamHTMLHome(m.home)}</span><span class="cal-vs">${sc||"vs"}</span><span class="cal-away">${teamHTML(m.away)}</span>`;
+    }
+    const label = ko ? (m.title||`第${m.n}試合`) : `グループ${m.group}`;
+    html += `<div class="cal-row">
+      <span class="cal-time">${fmtJST(m,true)}</span>
+      <span class="cal-mid">${cardHTML}<span class="cal-meta">${label}・${cityJa(m.city)||""}</span></span>
+      <span class="cal-bc">${broadcastHTML(m,ko)}</span>
+    </div>`;
   }
   html += '</div>';
   return html;
