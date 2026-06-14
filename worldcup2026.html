@@ -2766,12 +2766,23 @@ async function startAccountSync(){
 }
 async function accountPush(){
   if(!_acct.ready || !_acct.db || !state.account) return;
-  const base={pred:state.pred, bets:state.bets, name:state.me.name||"", color:state.me.color, writer:SESSION, ts:Date.now()};
-  const docData = state.me.avatar ? {...base, avatar:sanitizeAvatar(state.me.avatar)} : base;
   const ref=_acct.fs.doc(_acct.db,"users",state.account);
+  let name = state.me.name||"";
+  let avatar = state.me.avatar ? sanitizeAvatar(state.me.avatar) : "";
+  // 自分の名前/写真が空なら、クラウドの既存値を維持（空で他端末のプロフィールを潰さない）
+  if(!name || !avatar){
+    try{ const cur=await _acct.fs.getDoc(ref);
+      if(cur.exists()){ const cd=cur.data()||{};
+        if(!name && typeof cd.name==="string" && cd.name) name=cd.name;
+        if(!avatar && cd.avatar) avatar=sanitizeAvatar(cd.avatar);
+      }
+    }catch(_){}
+  }
+  const base={pred:state.pred, bets:state.bets, name:name, color:state.me.color, writer:SESSION, ts:Date.now()};
+  const docData = avatar ? {...base, avatar:avatar} : base;
   try{ await _acct.fs.setDoc(ref, docData); setAcctStatus("ok"); }
   catch(e){
-    if(state.me.avatar){ try{ await _acct.fs.setDoc(ref, base); setAcctStatus("ok"); }catch(e2){ setAcctStatus((e2&&e2.code==="permission-denied")?"denied":"error"); console.warn("acctPush",e2); } }
+    if(avatar){ try{ await _acct.fs.setDoc(ref, base); setAcctStatus("ok"); }catch(e2){ setAcctStatus((e2&&e2.code==="permission-denied")?"denied":"error"); console.warn("acctPush",e2); } }
     else { setAcctStatus((e&&e.code==="permission-denied")?"denied":"error"); console.warn("acctPush",e); }
   }
 }
