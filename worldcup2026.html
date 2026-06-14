@@ -120,6 +120,13 @@ h1 .jst{font-size:10.5px;color:var(--cyan);border:1px solid rgba(125,240,255,.4)
 .mode-toggle:hover{color:var(--text);border-color:rgba(125,240,255,.5)}
 .mode-toggle.active{background:linear-gradient(135deg,#3df0a2,#13b86e);color:#02180d;border-color:transparent;box-shadow:0 2px 16px rgba(59,255,176,.45)}
 #warn-banner{display:none}
+#champ-ribbon{display:none}
+.champ-inner{display:flex;align-items:center;justify-content:center;gap:14px;padding:9px 16px;background:rgba(255,255,255,.03);border-bottom:2px solid var(--champ,#ffd166);box-shadow:inset 0 -26px 46px -30px var(--champ,#ffd166)}
+.champ-txt{font-family:var(--disp);letter-spacing:3px;font-size:13px;color:var(--text);opacity:.9}
+.champ-team{font-family:var(--disp);font-size:18px;font-weight:700;color:var(--champ,#ffd166);text-shadow:0 0 16px var(--champ,#ffd166)}
+.champ-flag img.flag{width:30px;height:21px}
+body.champ header::after{background:var(--champ,#ffd166)!important;opacity:1}
+body.champ h1 .ttl{filter:drop-shadow(0 0 18px var(--champ,#ffd166))}
 .warn-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 22px;font-size:13px;color:#ffd9a6;
   background:linear-gradient(180deg,rgba(255,120,90,.22),rgba(255,90,140,.12));border-bottom:1px solid rgba(255,150,90,.4);
   box-shadow:0 0 26px rgba(255,120,90,.18) inset;animation:warnPulse 2.2s ease-in-out infinite}
@@ -467,6 +474,7 @@ details.share-fallback[open]>summary{margin-bottom:10px}
   <div class="next-match" id="next-match"></div>
 </header>
 <div id="warn-banner"></div>
+<div id="champ-ribbon"></div>
 <div class="modebanner" id="modebanner"></div>
 <main id="app"></main>
 <footer>🕐 日時表記はすべて<b>日本時間(JST)</b>に変換済みです（現地とは日付が異なる場合があります）。試合結果はESPN公開データから自動取得・自動反映されます（画面表示時＋「結果を自動取得」ボタン。手入力は不要）。順位決定は 勝点→得失点差→総得点→当該チーム間の成績 を適用（フェアプレーポイント・抽選は未対応）。3位通過8チームの山への振り分けは規定の条件を満たす割り当てを自動探索する簡易方式。予想はこのブラウザ(localStorage)に自動保存されます。</footer>
@@ -1363,6 +1371,7 @@ function render(){
   else if(ui.tab==="league") app.innerHTML = renderLeague();
   else app.innerHTML = renderCmp();
   if(typeof refreshWarnings==="function") refreshWarnings();
+  if(typeof applyChampionTheme==="function") applyChampionTheme();
 }
 
 function renderGroups(){
@@ -1855,6 +1864,31 @@ const FIFA_RANK = {
   "Iraq":58,"Saudi Arabia":60,"Jordan":64,"Cape Verde":70,"Ghana":73,"Bosnia and Herzegovina":74,"Curaçao":82,"Haiti":83,"New Zealand":89
 };
 function fifaRankHTML(id){ const r=FIFA_RANK[id]; return r?`<span class="frank" title="FIFAランク（概算）">#${r}</span>`:""; }
+// 各国の代表カラー（優勝テーマ用）
+const TEAM_COLOR = {
+  "Argentina":"#6CB4EE","Brazil":"#FFDF00","France":"#0055A4","Spain":"#C60B1E","England":"#E4002B","Portugal":"#DA291C",
+  "Germany":"#DD0000","Netherlands":"#FF6200","Belgium":"#E30613","Croatia":"#FF2A2A","Uruguay":"#5CBFEB","Colombia":"#FCD116",
+  "Morocco":"#C1272D","Switzerland":"#FF1721","Japan":"#BC002D","Senegal":"#00853F","United States":"#3C5BA8","Mexico":"#00853F",
+  "Austria":"#ED2939","Norway":"#BA0C2F","Ecuador":"#FFD100","South Korea":"#0047A0","Turkey":"#E30A17","Iran":"#239F40",
+  "Australia":"#FFCD00","Sweden":"#FFCD00","Canada":"#FF0000","Egypt":"#CE1126","Ivory Coast":"#FF8200","Algeria":"#0A7B3E",
+  "Panama":"#0053A5","Paraguay":"#D52B1E","Scotland":"#0065BF","Czech Republic":"#11457E","Qatar":"#8A1538","Tunisia":"#E70013",
+  "Saudi Arabia":"#006C35","Uzbekistan":"#0099B5","DR Congo":"#1E90FF","South Africa":"#007749","Iraq":"#CE1126","Jordan":"#007A3D",
+  "Cape Verde":"#003893","Ghana":"#1AA84F","Bosnia and Herzegovina":"#002F6C","Curaçao":"#002B7F","Haiti":"#1B1BB3","New Zealand":"#cfd3da"
+};
+function applyChampionTheme(){
+  const el=document.getElementById("champ-ribbon"); if(!el||!DATA) return;
+  const champ = koWinner("actual", DATA.final.n);
+  if(!champ){ el.style.display="none"; el.innerHTML=""; document.body.classList.remove("champ"); document.documentElement.style.removeProperty("--champ"); return; }
+  const col = TEAM_COLOR[champ] || "#ffd166";
+  document.documentElement.style.setProperty("--champ", col);
+  document.body.classList.add("champ");
+  el.style.display="";
+  el.innerHTML = `<div class="champ-inner"><span class="champ-flag">${teamFlag(champ)}</span><span class="champ-txt">WORLD CHAMPIONS</span><span class="champ-team">${esc(teamJa(champ))}</span><span class="champ-flag">${teamFlag(champ)}</span></div>`;
+  if(state.champCelebrated!==champ){
+    state.champCelebrated = champ; localStorage.setItem(LS_KEY, JSON.stringify(state));
+    if(!_reduceMotion){ confetti(innerWidth/2, 170, 180, 17); flashBanner(`🏆 ${teamJa(champ)} 優勝！`); }
+  }
+}
 function fairOdds(p){ return Math.max(1.05, Math.round((1/Math.max(p,0.02))*100)/100); }
 // 両チーム確定時のみ {h,d,a}（KOは{h,a}）。引き分けは接戦ほど確率高め。
 function matchOdds(homeId, awayId, isKO){
