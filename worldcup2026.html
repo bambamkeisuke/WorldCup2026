@@ -7,72 +7,93 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
 :root{
-  --bg:#05070f; --panel:rgba(148,178,255,.055); --panel2:rgba(148,178,255,.13);
-  --line:rgba(148,178,255,.16); --text:#eef3ff; --sub:#90a4c9;
-  --accent:#ffd166; --green:#1ee78e; --red:#ff5d7a; --blue:#4dabff;
-  --q1:rgba(30,231,142,.10); --q3:rgba(255,209,102,.12);
-  --gold-grad:linear-gradient(100deg,#fff3c4,#ffd166 45%,#ff9f43);
-  --blue-grad:linear-gradient(135deg,rgba(77,171,255,.34),rgba(77,171,255,.10));
-  --green-grad:linear-gradient(135deg,rgba(30,231,142,.32),rgba(30,231,142,.08));
+  --bg:#04030d; --panel:rgba(150,165,255,.05); --panel2:rgba(150,165,255,.12);
+  --line:rgba(165,185,255,.18); --text:#eef2ff; --sub:#9aa6d4;
+  --accent:#ffd166; --green:#3bffb0; --red:#ff6ba6; --blue:#6db8ff; --cyan:#7df0ff;
+  --q1:rgba(59,255,176,.10); --q3:rgba(255,209,102,.12);
+  /* ホログラフィック・フォイル */
+  --holo:linear-gradient(115deg,#ff6ba6,#ffd36b,#5bffb0,#6db8ff,#b58bff,#ff6ba6);
+  --holo-soft:linear-gradient(115deg,rgba(255,107,166,.55),rgba(255,211,107,.5),rgba(91,255,176,.5),rgba(109,184,255,.55),rgba(181,139,255,.5));
+  --gold-grad:linear-gradient(110deg,#fff3c4,#ffd166 42%,#ff9f43);
+  --blue-grad:linear-gradient(135deg,rgba(109,184,255,.32),rgba(125,240,255,.08));
+  --green-grad:linear-gradient(135deg,rgba(59,255,176,.30),rgba(59,255,176,.06));
   --disp:Oswald,"Noto Sans JP",sans-serif;
+  --par-x:0px; --par-y:0px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-::selection{background:rgba(255,209,102,.4)}
+::selection{background:rgba(125,240,255,.35)}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(148,178,255,.22);border-radius:99px;border:2px solid transparent;background-clip:content-box}
-::-webkit-scrollbar-thumb:hover{background:rgba(148,178,255,.45);border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb{background:var(--holo-soft);border-radius:99px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{filter:brightness(1.3);border:2px solid transparent;background-clip:content-box}
 body{
-  background:var(--bg);color:var(--text);font-size:14px;padding-bottom:64px;min-height:100vh;
+  background:#04030d;color:var(--text);font-size:14px;padding-bottom:64px;min-height:100vh;overflow-x:hidden;
   font-family:"Noto Sans JP","Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif;
 }
-body::before{ /* オーロラ */
-  content:"";position:fixed;inset:0;z-index:-2;
+body::before{ /* ホログラフィック・ネビュラ（虹色が漂う／パララックス） */
+  content:"";position:fixed;inset:-8%;z-index:-2;
   background:
-    radial-gradient(1100px 700px at 88% -12%, rgba(77,171,255,.22), transparent 60%),
-    radial-gradient(900px 650px at -8% 28%, rgba(255,159,67,.14), transparent 55%),
-    radial-gradient(1000px 800px at 55% 118%, rgba(30,231,142,.13), transparent 60%),
-    linear-gradient(180deg,#0a1124,#05070f 70%);
-  animation:aurora 16s ease-in-out infinite alternate;
+    radial-gradient(48% 42% at 82% -8%, rgba(109,184,255,.32), transparent 62%),
+    radial-gradient(46% 40% at 8% 18%, rgba(255,107,166,.24), transparent 62%),
+    radial-gradient(52% 48% at 52% 116%, rgba(91,255,176,.20), transparent 62%),
+    radial-gradient(40% 38% at 28% 72%, rgba(181,139,255,.22), transparent 62%),
+    linear-gradient(180deg,#0a0820,#04030d 76%);
+  transform:translate(var(--par-x),var(--par-y));
+  animation:holoShift 22s ease-in-out infinite alternate;
 }
-body::after{ /* ピッチの白線 */
-  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.045;
+body::after{ /* 近未来グリッド（中心からフェード／パララックス） */
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.45;
   background:
-    radial-gradient(circle at 50% 42%, transparent 138px, rgba(255,255,255,.9) 139px 141px, transparent 142px),
-    linear-gradient(rgba(255,255,255,.9),rgba(255,255,255,.9)) 50% 0/2px 100% no-repeat;
+    linear-gradient(rgba(125,240,255,.05) 1px,transparent 1px) 0 0/44px 44px,
+    linear-gradient(90deg,rgba(125,240,255,.05) 1px,transparent 1px) 0 0/44px 44px;
+  transform:translate(calc(var(--par-x)*1.8),calc(var(--par-y)*1.8));
+  -webkit-mask:radial-gradient(circle at 50% 34%, #000 38%, transparent 82%);
+  mask:radial-gradient(circle at 50% 34%, #000 38%, transparent 82%);
 }
-@keyframes aurora{from{filter:hue-rotate(0deg)}to{filter:hue-rotate(22deg) saturate(1.3)}}
+@keyframes holoShift{0%{filter:hue-rotate(0deg) saturate(1.05)}100%{filter:hue-rotate(55deg) saturate(1.35)}}
 header{
   position:sticky;top:0;z-index:50;padding:14px 22px 0;
-  background:rgba(6,10,22,.74);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);
-  border-bottom:1px solid rgba(255,209,102,.25);box-shadow:0 10px 36px rgba(0,0,0,.5);
+  background:rgba(7,6,20,.72);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);
+  border-bottom:1px solid transparent;box-shadow:0 10px 40px rgba(0,0,0,.55);position:sticky;
+}
+header::after{ /* ホログラフィックなボーダー光 */
+  content:"";position:absolute;left:0;right:0;bottom:0;height:1.5px;
+  background:var(--holo);background-size:220% auto;animation:titleShine 6s linear infinite;opacity:.85;
 }
 h1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-h1 .cup{font-size:25px;align-self:center;filter:drop-shadow(0 0 12px rgba(255,209,102,.7));animation:trophyFloat 3.2s ease-in-out infinite;transform-origin:50% 80%}
+h1 .cup{font-size:25px;align-self:center;filter:drop-shadow(0 0 14px rgba(125,240,255,.8));animation:trophyFloat 3.2s ease-in-out infinite;transform-origin:50% 80%}
 @keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-3px) rotate(5deg)}}
 h1 .ttl{
-  font-family:var(--disp);font-weight:700;font-size:27px;letter-spacing:3px;white-space:nowrap;
-  background:linear-gradient(100deg,#ffb24d 0%,#ffd166 28%,#fffbe6 48%,#ffd166 64%,#ff9f43 100%);
-  background-size:240% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:titleShine 7s linear infinite;
+  font-family:var(--disp);font-weight:700;font-size:28px;letter-spacing:3px;white-space:nowrap;
+  background:linear-gradient(100deg,#ff6ba6,#ffd36b,#ffffff,#5bffb0,#6db8ff,#b58bff,#ff6ba6);
+  background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:titleShine 8s linear infinite;filter:drop-shadow(0 0 16px rgba(125,240,255,.3));
 }
-@keyframes titleShine{0%{background-position:0% center}100%{background-position:240% center}}
+@keyframes titleShine{0%{background-position:0% center}100%{background-position:300% center}}
 h1 .sub{font-size:12px;color:var(--sub);font-weight:500}
-h1 .jst{font-size:10.5px;color:var(--accent);border:1px solid rgba(255,209,102,.45);border-radius:99px;padding:2px 11px;background:rgba(255,209,102,.08);white-space:nowrap;align-self:center}
+h1 .jst{font-size:10.5px;color:var(--cyan);border:1px solid rgba(125,240,255,.4);border-radius:99px;padding:2px 11px;background:rgba(125,240,255,.08);white-space:nowrap;align-self:center}
+/* 次の試合カウントダウン */
+.next-match{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:7px 2px 12px;font-size:12.5px}
+.nm-tag{font-family:var(--disp);font-size:11px;letter-spacing:2px;font-weight:700;color:#04030d;background:var(--holo);background-size:200% auto;animation:titleShine 5s linear infinite;padding:2px 10px;border-radius:6px}
+.nm-teams{font-weight:700;color:var(--text)}
+.nm-jst{color:var(--sub);font-size:11px}
+.nm-cd{margin-left:auto;font-size:12px;color:var(--cyan);display:flex;align-items:center;gap:5px}
+.nm-cd b{font-family:var(--disp);font-size:18px;letter-spacing:1px;color:#fff;text-shadow:0 0 12px rgba(125,240,255,.75);font-variant-numeric:tabular-nums}
+.nm-label{color:var(--cyan);font-weight:700}
 .topbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .toolbar button{
   background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;
   padding:7px 13px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .2s;
 }
-.toolbar button:hover{border-color:rgba(255,209,102,.65);box-shadow:0 0 16px rgba(255,209,102,.22);transform:translateY(-1px)}
+.toolbar button:hover{border-color:rgba(125,240,255,.6);box-shadow:0 0 16px rgba(125,240,255,.22);transform:translateY(-1px)}
 .tabs{display:flex;gap:4px;margin:12px 0 12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px}
 .tabs button{
   background:none;border:none;color:var(--sub);padding:9px 20px;cursor:pointer;font-size:13.5px;
   font-weight:700;font-family:inherit;border-radius:10px;letter-spacing:.5px;transition:all .25s;
 }
 .tabs button:hover{color:var(--text)}
-.tabs button.on{background:var(--gold-grad);color:#221500;box-shadow:0 2px 18px rgba(255,193,77,.45)}
+.tabs button.on{background:var(--holo);background-size:200% auto;animation:titleShine 6s linear infinite;color:#06121f;box-shadow:0 2px 20px rgba(125,240,255,.4)}
 .mode-switch{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:4px;gap:4px}
 .mode-switch button{
   border:none;background:none;color:var(--sub);padding:8px 18px;border-radius:99px;cursor:pointer;
@@ -85,14 +106,18 @@ h1 .jst{font-size:10.5px;color:var(--accent);border:1px solid rgba(255,209,102,.
 main{padding:18px 22px;max-width:1500px;margin:0 auto}
 .groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:16px}
 .group-card{
-  background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 16px;
-  position:relative;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  transition:transform .25s,box-shadow .25s,border-color .25s;
+  background:linear-gradient(160deg,rgba(150,165,255,.07),rgba(150,165,255,.02));
+  border:1px solid var(--line);border-radius:18px;padding:14px 16px;
+  position:relative;overflow:hidden;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  transition:transform .14s ease,box-shadow .25s,border-color .25s;transform-style:preserve-3d;
 }
-.group-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold-grad);opacity:.6}
-.group-card:hover{transform:translateY(-3px);border-color:rgba(255,209,102,.45);box-shadow:0 16px 44px rgba(0,0,0,.55),0 0 26px rgba(255,209,102,.07)}
-.group-card h3{font-family:var(--disp);font-size:16px;letter-spacing:2px;color:var(--accent);margin-bottom:9px;display:flex;align-items:center;gap:10px}
-.group-card h3::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,209,102,.5),transparent)}
+.group-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--holo);background-size:220% auto;animation:titleShine 7s linear infinite;opacity:.8}
+.group-card::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s;
+  background:radial-gradient(380px circle at var(--mx,50%) var(--my,0%), rgba(125,240,255,.16), transparent 45%)}
+.group-card:hover{border-color:rgba(125,240,255,.4);box-shadow:0 18px 50px rgba(0,0,0,.6),0 0 30px rgba(125,240,255,.12)}
+.group-card:hover::after{opacity:1}
+.group-card h3{font-family:var(--disp);font-size:16px;letter-spacing:2px;color:var(--cyan);margin-bottom:9px;display:flex;align-items:center;gap:10px}
+.group-card h3::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(125,240,255,.5),transparent)}
 table.standings{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:10px}
 table.standings th{color:var(--sub);font-weight:normal;text-align:right;padding:2px 6px;border-bottom:1px solid var(--line);font-size:11px}
 table.standings th.tname{text-align:left}
@@ -144,16 +169,22 @@ img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-alig
 .hint{font-size:12px;color:var(--sub);margin:6px 0 12px;line-height:1.8}
 /* bracket */
 .bracket-wrap{overflow-x:auto;padding-bottom:10px}
-.bracket{display:flex;gap:22px;min-width:1280px}
-.round{display:flex;flex-direction:column;min-width:215px;flex:1}
+.bracket{display:flex;gap:22px;min-width:1280px;position:relative}
+svg.bracket-svg{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:visible}
+.bracket-line{fill:none;stroke:#7df0ff;stroke-width:1.5;opacity:.42;stroke-dasharray:5 8;
+  animation:flowDash .9s linear infinite;filter:drop-shadow(0 0 3px rgba(125,240,255,.7))}
+@keyframes flowDash{to{stroke-dashoffset:-13}}
+.round{display:flex;flex-direction:column;min-width:215px;flex:1;position:relative;z-index:1}
 .round h4{
-  text-align:center;font-family:var(--disp);color:var(--accent);font-size:14px;letter-spacing:2.5px;padding:6px 0 8px;
-  background:linear-gradient(transparent,transparent);position:sticky;top:0;
+  text-align:center;font-family:var(--disp);font-size:14px;letter-spacing:2.5px;padding:6px 0 8px;position:sticky;top:0;
+  background:var(--holo);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleShine 7s linear infinite;
 }
-.round h4::after{content:"";display:block;width:46px;height:2px;margin:6px auto 0;background:var(--gold-grad);border-radius:2px;opacity:.8}
+.round h4::after{content:"";display:block;width:46px;height:2px;margin:6px auto 0;background:var(--holo);background-size:200% auto;animation:titleShine 7s linear infinite;border-radius:2px;opacity:.9}
 .round .matches{display:flex;flex-direction:column;justify-content:space-around;flex:1;gap:8px}
-.ko-card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:7px 9px;transition:all .2s}
-.ko-card:hover{border-color:rgba(148,178,255,.45);box-shadow:0 8px 26px rgba(0,0,0,.45);transform:translateY(-1px)}
+.ko-card{background:linear-gradient(160deg,rgba(150,165,255,.08),rgba(150,165,255,.02));border:1px solid var(--line);border-radius:13px;padding:7px 9px;transition:transform .14s ease,box-shadow .2s,border-color .2s;position:relative;z-index:1;transform-style:preserve-3d;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.ko-card::after{content:"";position:absolute;inset:0;border-radius:13px;pointer-events:none;opacity:0;transition:opacity .25s;background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),rgba(125,240,255,.16),transparent 50%)}
+.ko-card:hover{border-color:rgba(125,240,255,.42);box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 22px rgba(125,240,255,.12)}
+.ko-card:hover::after{opacity:1}
 .ko-card .meta{font-size:10px;color:var(--sub);margin-bottom:4px;display:flex;justify-content:space-between;gap:6px}
 .ko-team{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:9px;font-size:12.5px;border:1px solid transparent;transition:all .18s}
 .ko-team .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -161,26 +192,28 @@ img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-alig
 .ko-team.placeholder .nm{color:var(--sub);font-style:italic;font-size:11.5px}
 .ko-team.clickable{cursor:pointer}
 .ko-team.clickable:hover{background:var(--panel2);transform:scale(1.02)}
-.ko-team.picked{background:var(--blue-grad);border-color:rgba(77,171,255,.72);box-shadow:0 0 14px rgba(77,171,255,.3)}
-.ko-team.won{background:var(--green-grad);border-color:rgba(30,231,142,.65);box-shadow:0 0 12px rgba(30,231,142,.22)}
-.ko-team.lost{opacity:.45;filter:saturate(.5)}
+.ko-team.picked{background:linear-gradient(135deg,rgba(125,240,255,.28),rgba(109,184,255,.08));border-color:rgba(125,240,255,.75);box-shadow:0 0 16px rgba(125,240,255,.4)}
+.ko-team.won{background:var(--green-grad);border-color:rgba(59,255,176,.7);box-shadow:0 0 14px rgba(59,255,176,.3)}
+.ko-team.lost{opacity:.4;filter:saturate(.45)}
 .ko-res{display:flex;align-items:center;gap:5px;justify-content:center;margin-top:5px;flex-wrap:wrap}
 .ko-res .pk{font-size:10.5px;color:var(--green)}
 .champion{
-  position:relative;overflow:hidden;text-align:center;margin-top:10px;padding:16px;border-radius:16px;
-  background:linear-gradient(135deg,rgba(255,209,102,.17),rgba(255,159,67,.05));
-  border:1px solid rgba(255,209,102,.6);box-shadow:0 0 36px rgba(255,193,77,.18);
+  position:relative;overflow:hidden;text-align:center;margin-top:10px;padding:16px;border-radius:16px;transform-style:preserve-3d;
+  background:linear-gradient(135deg,rgba(125,240,255,.14),rgba(181,139,255,.06));
+  border:1px solid transparent;box-shadow:0 0 40px rgba(125,240,255,.16);
 }
+.champion::before{content:"";position:absolute;inset:0;border-radius:16px;padding:1.5px;background:var(--holo);background-size:220% auto;animation:titleShine 6s linear infinite;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 .champion::after{
   content:"";position:absolute;top:-60%;bottom:-60%;left:-45%;width:36%;
-  background:linear-gradient(105deg,transparent,rgba(255,255,255,.22),transparent);
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.3),transparent);
   transform:skewX(-20deg);animation:shine 3.2s ease-in-out infinite;
 }
 @keyframes shine{0%{left:-45%}55%,100%{left:135%}}
-.champion .t{font-size:12px;color:var(--accent);letter-spacing:2px}
+.champion .t{font-size:12px;color:var(--cyan);letter-spacing:2px}
 .champion .nm{
-  font-family:var(--disp);font-size:22px;font-weight:700;margin-top:5px;
-  background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  font-family:var(--disp);font-size:23px;font-weight:700;margin-top:5px;
+  background:var(--holo);background-size:240% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleShine 6s linear infinite;
 }
 /* comparison */
 .cmp-cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
@@ -188,11 +221,13 @@ img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-alig
   background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 22px;min-width:170px;
   position:relative;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .25s;
 }
-.cmp-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold-grad);opacity:.6}
-.cmp-card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,0,0,.5)}
+.cmp-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--holo);background-size:220% auto;animation:titleShine 7s linear infinite;opacity:.8}
+.cmp-card::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s;background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),rgba(125,240,255,.16),transparent 50%)}
+.cmp-card:hover{box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 24px rgba(125,240,255,.1);border-color:rgba(125,240,255,.4)}
+.cmp-card:hover::after{opacity:1}
 .cmp-card .v{
   font-family:var(--disp);font-size:34px;font-weight:700;letter-spacing:1px;
-  background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  background:var(--holo);background-size:240% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleShine 7s linear infinite;
 }
 .cmp-card .l{font-size:11.5px;color:var(--sub);margin-top:3px}
 .cmp-section{
@@ -377,6 +412,7 @@ table.lb .up{color:var(--green)} table.lb .dn{color:var(--red)}
       <span id="fetch-status"></span>
     </div>
   </div>
+  <div class="next-match" id="next-match"></div>
 </header>
 <div class="modebanner" id="modebanner"></div>
 <main id="app"></main>
@@ -1215,7 +1251,7 @@ function render(){
     return;
   }
   if(ui.tab==="groups") app.innerHTML = renderGroups();
-  else if(ui.tab==="ko") app.innerHTML = renderKO();
+  else if(ui.tab==="ko"){ app.innerHTML = renderKO(); drawBracketLines(); setTimeout(drawBracketLines, 260); }
   else if(ui.tab==="league") app.innerHTML = renderLeague();
   else app.innerHTML = renderCmp();
 }
@@ -1351,7 +1387,7 @@ function koCard(m, track){
   }
   const bet = track==="pred" ? betBarKo(m, home, away, pick) : "";
   const title = m.title ? `<b>${m.title}</b>` : `第${m.n}試合`;
-  return `<div class="ko-card"><div class="meta"><span>${title}</span><span>${fmtJST(m)} ${cityJa(m.city)}</span></div>${rows}${res}${bet}</div>`;
+  return `<div class="ko-card" data-n="${m.n}"><div class="meta"><span>${title}</span><span>${fmtJST(m)} ${cityJa(m.city)}</span></div>${rows}${res}${bet}</div>`;
 }
 function betBarKo(m, home, away, pick){
   const od = matchOdds(home, away, true);
@@ -1808,10 +1844,99 @@ function tallyScore(player){
   });
 }
 
+/* ============ トーナメント連結線（アニメーション） ============ */
+function drawBracketLines(){
+  const bracket=document.querySelector(".bracket"); if(!bracket) return;
+  let svg=bracket.querySelector("svg.bracket-svg");
+  if(!svg){ svg=document.createElementNS("http://www.w3.org/2000/svg","svg"); svg.setAttribute("class","bracket-svg"); bracket.insertBefore(svg, bracket.firstChild); }
+  const W=bracket.scrollWidth, H=bracket.scrollHeight;
+  svg.setAttribute("width",W); svg.setAttribute("height",H); svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  if(_reduceMotion) return;
+  const cards={};
+  bracket.querySelectorAll(".ko-card[data-n]").forEach(c=>cards[c.getAttribute("data-n")]=c);
+  const br=bracket.getBoundingClientRect();
+  const at=(el,right)=>{ const r=el.getBoundingClientRect();
+    return {x:(right?r.right:r.left)-br.left+bracket.scrollLeft, y:r.top+r.height/2-br.top+bracket.scrollTop}; };
+  const ns="http://www.w3.org/2000/svg"; let i=0;
+  for(const n in cards){
+    const m=DATA.koByN[n]; if(!m) continue;
+    for(const side of ["home","away"]){
+      const mt=String(m[side]).match(/^[WL](\d+)$/); if(!mt) continue;
+      const feeder=cards[mt[1]]; if(!feeder) continue;
+      const a=at(feeder,true), b=at(cards[n],false), mx=(a.x+b.x)/2;
+      const path=document.createElementNS(ns,"path");
+      path.setAttribute("d",`M ${a.x} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}`);
+      path.setAttribute("class","bracket-line");
+      path.style.animationDelay=(i++%10*0.06)+"s";
+      svg.appendChild(path);
+    }
+  }
+}
+let _blTimer=null;
+addEventListener("resize",()=>{ if(ui.tab==="ko"){ clearTimeout(_blTimer); _blTimer=setTimeout(drawBracketLines,120); } });
+
+/* ============ 次の試合カウントダウン（JST） ============ */
+function allMatchesByTime(){
+  const list=[];
+  for(const m of DATA.groupMatches){ const t=kickoffTime(m.n); if(t) list.push({m,t,ko:false}); }
+  for(const m of DATA.allKO){ const t=kickoffTime(m.n); if(t) list.push({m,t,ko:true}); }
+  list.sort((a,b)=>a.t-b.t);
+  return list;
+}
+let _cdTimer=null;
+function renderCountdown(){
+  const el=document.getElementById("next-match"); if(!el || !DATA) return;
+  const now=Date.now();
+  const nx=allMatchesByTime().find(x=>x.t>now);
+  if(!nx){ el.innerHTML='<span class="nm-label">🏆 全日程終了 — お疲れさまでした！</span>'; return; }
+  const m=nx.m;
+  let teams;
+  if(nx.ko){
+    const h=slotTeam("actual",m,"home")||slotTeam("pred",m,"home");
+    const a=slotTeam("actual",m,"away")||slotTeam("pred",m,"away");
+    teams=(h&&a)?`${teamJa(h)} vs ${teamJa(a)}`:(m.title||`第${m.n}試合`);
+  } else teams=`${teamJa(m.home)} vs ${teamJa(m.away)}`;
+  const s=Math.max(0,Math.floor((nx.t-now)/1000));
+  const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),mi=Math.floor(s%3600/60),se=s%60;
+  const p=x=>String(x).padStart(2,"0");
+  const cd=d>0?`${d}日 ${p(h)}:${p(mi)}:${p(se)}`:`${p(h)}:${p(mi)}:${p(se)}`;
+  el.innerHTML=`<span class="nm-tag">NEXT</span><span class="nm-teams">${esc(teams)}</span><span class="nm-jst">${fmtJST(m,false)} JST</span><span class="nm-cd">⏱ <b>${cd}</b></span>`;
+}
+function startCountdown(){ if(_cdTimer) clearInterval(_cdTimer); renderCountdown(); _cdTimer=setInterval(renderCountdown,1000); }
+
+/* ============ 3Dティルト & パララックス ============ */
+const TILT_SEL=".group-card,.ko-card,.cmp-card,.champion";
+let _tiltEl=null, _tiltRAF=null, _ptr={x:0,y:0,has:false};
+if(!_reduceMotion){
+  document.addEventListener("mousemove",e=>{
+    _ptr.x=e.clientX; _ptr.y=e.clientY; _ptr.has=true;
+    const el=e.target.closest?e.target.closest(TILT_SEL):null;
+    if(el!==_tiltEl){ if(_tiltEl) _tiltEl.style.transform=""; _tiltEl=el; }
+    if(el){
+      const r=el.getBoundingClientRect();
+      const px=(e.clientX-r.left)/r.width-0.5, py=(e.clientY-r.top)/r.height-0.5;
+      el.style.transform=`perspective(1000px) rotateX(${(-py*5).toFixed(2)}deg) rotateY(${(px*7).toFixed(2)}deg) translateY(-3px)`;
+      el.style.setProperty("--mx",((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+      el.style.setProperty("--my",((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+    }
+    if(!_tiltRAF) _tiltRAF=requestAnimationFrame(applyParallax);
+  });
+  document.addEventListener("mouseleave",()=>{ if(_tiltEl){_tiltEl.style.transform="";_tiltEl=null;} },true);
+}
+function applyParallax(){
+  _tiltRAF=null;
+  if(!_ptr.has) return;
+  const dx=(_ptr.x/innerWidth-0.5), dy=(_ptr.y/innerHeight-0.5);
+  document.documentElement.style.setProperty("--par-x",(dx*-18).toFixed(1)+"px");
+  document.documentElement.style.setProperty("--par-y",(dy*-18).toFixed(1)+"px");
+}
+
 /* ============ 初期化 ============ */
 buildData();
 load();
 render();
+startCountdown();
 if(DATA) fetchResults(false); // 起動時に最新の試合結果を自動反映
 </script>
 </body>
