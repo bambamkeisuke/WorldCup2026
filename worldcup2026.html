@@ -27,7 +27,7 @@
 ::-webkit-scrollbar-thumb{background:var(--holo-soft);border-radius:99px;border:2px solid transparent;background-clip:content-box}
 ::-webkit-scrollbar-thumb:hover{filter:brightness(1.3);border:2px solid transparent;background-clip:content-box}
 body{
-  background:#04030d;color:var(--text);font-size:14px;padding-bottom:64px;min-height:100vh;overflow-x:hidden;
+  background:#04030d;color:var(--text);font-size:14px;min-height:100vh;overflow-x:hidden;
   font-family:"Noto Sans JP","Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif;
 }
 body::before{ /* ホログラフィック・ネビュラ（虹色が漂う／パララックス） */
@@ -102,6 +102,12 @@ h1 .jst{font-size:10.5px;color:var(--cyan);border:1px solid rgba(125,240,255,.4)
 }
 .tabs button:hover{color:var(--text)}
 .tabs button.on{background:var(--holo);background-size:200% auto;animation:titleShine 6s linear infinite;color:#06121f;box-shadow:0 2px 20px rgba(125,240,255,.4)}
+.live-dot{display:none;width:7px;height:7px;border-radius:50%;background:var(--green);margin-left:7px;box-shadow:0 0 8px var(--green);animation:livePulse 1.4s ease-in-out infinite;vertical-align:middle}
+.live-dot.on{display:inline-block}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.3}}
+.toolbar button.minor{padding:7px 9px;opacity:.55}
+.toolbar button.minor .ico{margin-right:0}
+.toolbar button.minor:hover{opacity:1}
 .mode-switch{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:4px;gap:4px}
 .mode-switch button{
   border:none;background:none;color:var(--sub);padding:8px 18px;border-radius:99px;cursor:pointer;
@@ -175,9 +181,10 @@ img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-alig
 #fetch-status{font-size:11px;color:var(--sub);align-self:center;white-space:nowrap}
 .other-info{font-size:10.5px;color:var(--sub);text-align:center;white-space:nowrap}
 .score-txt{text-align:center;font-weight:bold;font-size:14px;font-family:var(--disp);letter-spacing:1px}
-.judge{font-weight:bold}
-.judge.exact{color:var(--accent);text-shadow:0 0 8px rgba(255,209,102,.5)}
-.judge.outcome{color:var(--green)} .judge.miss{color:var(--red)}
+.judge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:1px 8px;border-radius:99px;letter-spacing:.3px;line-height:1.6;white-space:nowrap}
+.judge.exact{color:#1a1300;background:var(--holo);background-size:200% auto;animation:titleShine 4s linear infinite;box-shadow:0 0 12px rgba(255,211,107,.4)}
+.judge.outcome{color:var(--green);background:rgba(59,255,176,.12);border:1px solid rgba(59,255,176,.4)}
+.judge.miss{color:var(--red);background:rgba(255,107,166,.1);border:1px solid rgba(255,107,166,.35)}
 .thirds-panel{
   background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 18px;margin-top:16px;
   position:relative;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
@@ -268,9 +275,8 @@ table.cmp tr:hover td{background:rgba(148,178,255,.05)}
 .chip.hit{border-color:rgba(30,231,142,.65);background:var(--green-grad);box-shadow:0 0 10px rgba(30,231,142,.15)}
 .chip.hit::after{content:" ✓";color:var(--green);font-weight:bold}
 footer{
-  position:fixed;bottom:0;left:0;right:0;padding:7px 22px;font-size:10.5px;color:var(--sub);
-  background:rgba(6,10,22,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-top:1px solid var(--line);
+  margin-top:30px;padding:16px 22px 24px;font-size:10.5px;color:var(--sub);line-height:1.7;
+  background:rgba(6,10,22,.4);border-top:1px solid var(--line);
 }
 .empty-note{color:var(--sub);padding:40px;text-align:center;font-size:13px;line-height:2}
 
@@ -289,7 +295,7 @@ footer{
 .match-block{border-top:1px dashed rgba(148,178,255,.15)}
 .match-block .match-row{border-top:none}
 .bet-bar{
-  display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:5px 8px 8px 70px;font-size:11px;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 10px;padding:6px 10px 9px;font-size:11px;
 }
 .bet-bar .odds-set{display:flex;gap:4px}
 .bet-bar .od{
@@ -418,31 +424,31 @@ details.share-fallback[open]>summary{margin-bottom:10px}
 <body>
 <header>
   <div class="topbar">
-    <h1><span class="cup">🏆</span><span class="ttl">FIFA WORLD CUP 2026</span><span class="sub">予想シミュレーター &amp; 結果確認</span><span class="jst">🕐 日時は日本時間(JST)</span></h1>
+    <h1><span class="cup">🏆</span><span class="ttl">FIFA WORLD CUP 2026</span><span class="sub">PREDICT · BET · WIN</span><span class="jst">JST（日本時間）表示</span></h1>
     <div class="head-right">
       <div class="player-chip" id="player-chip" onclick="editName()" title="クリックで名前を変更">
         <span class="dot" id="player-dot"></span><span id="player-name">あなた</span>
         <span class="coins" id="player-coins">🪙 1000</span>
       </div>
-      <div class="mode-switch">
-        <button id="mode-pred" class="pred" onclick="setMode('pred')">🔮 予想</button>
-        <button id="mode-actual" class="actual" onclick="setMode('actual')">📊 実際の結果</button>
+      <div class="mode-switch" title="予想（メイン）と実際の結果を切り替え">
+        <button id="mode-pred" class="pred" onclick="setMode('pred')">PREDICT</button>
+        <button id="mode-actual" class="actual" onclick="setMode('actual')">RESULTS</button>
       </div>
     </div>
   </div>
   <div class="topbar">
     <nav class="tabs">
-      <button id="tab-groups" onclick="setTab('groups')">グループステージ</button>
-      <button id="tab-ko" onclick="setTab('ko')">決勝トーナメント</button>
-      <button id="tab-cmp" onclick="setTab('cmp')">答え合わせ</button>
-      <button id="tab-league" onclick="setTab('league')">🏅 友達リーグ</button>
+      <button id="tab-groups" onclick="setTab('groups')">GROUP STAGE</button>
+      <button id="tab-ko" onclick="setTab('ko')">KNOCKOUTS</button>
+      <button id="tab-cmp" onclick="setTab('cmp')">SCORECARD</button>
+      <button id="tab-league" onclick="setTab('league')">RIVALS<span class="live-dot" id="rivals-live"></span></button>
     </nav>
     <div class="toolbar">
       <button id="btn-random" onclick="randomFill()"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l1.7 4 4 1.7-4 1.7L12 14.4 10.3 10.4 6.3 8.7l4-1.7z"/><path d="M18.5 14l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg>未入力の予想をランダムで埋める</button>
       <button onclick="fetchResults(true)"><svg class="ico" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3.5v5h-5"/></svg>結果を自動取得</button>
-      <button onclick="exportData()"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v11M7.5 9.5 12 14l4.5-4.5M5 20h14"/></svg>保存(JSON)</button>
-      <button onclick="document.getElementById('import-file').click()"><svg class="ico" viewBox="0 0 24 24"><path d="M12 14V3M7.5 7.5 12 3l4.5 4.5M5 20h14"/></svg>読込</button>
       <button onclick="resetTrack('pred')"><svg class="ico" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.64-6.36M3 3.5v5h5"/></svg>予想をリセット</button>
+      <button class="minor" onclick="exportData()" title="バックアップを保存(JSON)" aria-label="保存"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v11M7.5 9.5 12 14l4.5-4.5M5 20h14"/></svg></button>
+      <button class="minor" onclick="document.getElementById('import-file').click()" title="バックアップを読込" aria-label="読込"><svg class="ico" viewBox="0 0 24 24"><path d="M12 14V3M7.5 7.5 12 3l4.5 4.5M5 20h14"/></svg></button>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
       <span id="fetch-status"></span>
     </div>
@@ -1271,9 +1277,9 @@ function judgeMatch(pred, act){
   return pred.o===act.o ? "outcome" : "miss";
 }
 const JUDGE_ICON = {
-  exact:'<span class="judge exact" title="スコアまで的中（+3点）">◎的中</span>',
-  outcome:'<span class="judge outcome" title="勝敗のみ的中（+1点）">○勝敗</span>',
-  miss:'<span class="judge miss" title="ハズレ">×</span>'
+  exact:'<span class="judge exact" title="スコアまで的中（+3点）">◎ 完全的中</span>',
+  outcome:'<span class="judge outcome" title="勝敗的中（+1点）">○ 的中</span>',
+  miss:'<span class="judge miss" title="ハズレ">✕ ハズレ</span>'
 };
 function outcomeText(m, e){
   if(e.h!==null && e.a!==null) return `${e.h}-${e.a}`;
@@ -1299,14 +1305,15 @@ function render(){
   document.getElementById("mode-pred").classList.toggle("on", ui.mode==="pred");
   document.getElementById("mode-actual").classList.toggle("on", ui.mode==="actual");
   ["groups","ko","cmp","league"].forEach(t=>document.getElementById("tab-"+t).classList.toggle("on", ui.tab===t));
+  const liveDot=document.getElementById("rivals-live"); if(liveDot) liveDot.classList.toggle("on", typeof syncOnline==="function" && syncOnline());
   const modeSwitch = document.querySelector(".mode-switch");
   if(modeSwitch) modeSwitch.style.visibility = ui.tab==="league" ? "hidden" : "";
   document.getElementById("btn-random").style.display = (ui.mode==="pred" && ui.tab!=="league") ? "" : "none";
-  document.getElementById("modebanner").innerHTML = ui.tab==="league"
-    ? "🏅 <b>友達リーグ</b>：みんなの順位・コイン残高・称号を比較。<b>合言葉を入れるだけ</b>で友達とリアルタイム対戦（コード交換は不要）。"
-    : (ui.mode==="pred"
-      ? "🔮 <b>予想＆ベット</b>：勝つと思うチーム名（引き分けは「分」）をクリック。コインを賭けるとオッズに応じて増減（自信があるほど多く賭けよう）。<b>スコアまで当てれば配当2倍（⚡パーフェクトボーナス）</b>。予想を変えれば以降のトーナメントも自動追従。"
-      : "📊 <b>実際の結果</b>（閲覧専用）：試合結果は終了後に自動で取得・反映されます（🔄でいつでも更新可）。");
+  const mb = document.getElementById("modebanner");
+  const mbText = ui.tab==="league" ? ""
+    : (ui.mode==="actual" ? "<b>RESULTS</b>：実際の試合結果（閲覧専用）。終了後に自動取得・反映されます。" : "");
+  mb.innerHTML = mbText;
+  mb.style.display = mbText ? "" : "none";
   const app = document.getElementById("app");
   if(!DATA){
     app.innerHTML = '<div class="empty-note">データの読み込みに失敗しました。</div>';
@@ -1327,8 +1334,8 @@ function renderGroups(){
   let html = `<p class="hint">${track==="pred"?"予想(勝敗)入力済み":"結果反映済み"}: ${entered} / ${DATA.groupMatches.length} 試合　<span style="color:var(--green)">■</span> 上位2チーム＝決勝T進出　<span style="color:var(--accent)">■</span> 3位通過圏内(暫定)　🕐 日時はすべて日本時間(JST)<br>予想の判定マーク: <span class="judge exact">◎</span>=スコアまで的中(+3点) <span class="judge outcome">○勝敗</span>=勝敗のみ的中(+1点) <span class="judge miss">×</span>=ハズレ</p>`;
   // 表示切替：グループ別 / 日程順
   html += `<div class="view-toggle">
-    <button class="${ui.groupView!=="byDate"?"on":""}" onclick="setGroupView('byGroup')">📊 グループ別</button>
-    <button class="${ui.groupView==="byDate"?"on":""}" onclick="setGroupView('byDate')">📅 日程順</button>
+    <button class="${ui.groupView!=="byDate"?"on":""}" onclick="setGroupView('byGroup')">グループ別</button>
+    <button class="${ui.groupView==="byDate"?"on":""}" onclick="setGroupView('byDate')">日程順</button>
   </div>`;
   if(ui.groupView==="byDate"){
     html += renderGroupsByDate(track);
@@ -1414,7 +1421,7 @@ function renderGroupsByDate(track){
   let lastDay = "";
   for(const m of matches){
     const day = jstDayLabel(m);
-    if(day!==lastDay){ html += `<div class="day-header">📅 ${day}</div>`; lastDay = day; }
+    if(day!==lastDay){ html += `<div class="day-header">${day}</div>`; lastDay = day; }
     html += groupMatchRow(m, track, true);
   }
   html += '</div>';
@@ -2128,7 +2135,7 @@ function renderOnlineBox(){
       <b>① </b>好きな合言葉と表示名を入れて「参加する」（合言葉は自分で決めるだけ・事前登録不要）<br>
       <b>② </b>友達に「<b>このページのURL</b>」と「<b>同じ合言葉</b>」を伝える<br>
       <b>③ </b>全員の予想・順位がリアルタイムで自動同期されます</p>`;
-    html+=`<div class="row"><input id="room-code" placeholder="合言葉（自分で決める／例: bambam-cup-7h3k）" value="${esc(state.room.code)}"><input id="room-name" placeholder="あなたの表示名" value="${esc(state.me.name)}"><button class="join-btn" onclick="joinRoom()">🔌 参加する</button></div>`;
+    html+=`<div class="row"><input id="room-code" placeholder="合言葉（自分で決める／例: bambam-cup-7h3k）" value="${esc(state.room.code)}"><input id="room-name" placeholder="あなたの表示名" value="${esc(state.me.name)}"><button class="join-btn" onclick="joinRoom()">参加</button></div>`;
     html+=`<p class="hint" style="font-size:11px">※ <code>test</code> や <code>worldcup</code> など定番ワードは他人と被る恐れあり。<b>苗字＋好きな数字</b>のような独自の合言葉にしてください。</p>`;
   }
   html+='</div></div>';
