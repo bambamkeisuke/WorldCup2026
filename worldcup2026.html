@@ -385,6 +385,17 @@ table.lb .up{color:var(--green)} table.lb .dn{color:var(--red)}
 .friend-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .friend-tabs button{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:99px;padding:5px 13px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;transition:all .2s}
 .friend-tabs button.on{background:var(--blue-grad);border-color:rgba(77,171,255,.6);color:var(--text)}
+/* オンラインルーム強調＋コード共有の折りたたみ */
+.league-section.online-main{border-color:rgba(125,240,255,.4);box-shadow:0 0 30px rgba(125,240,255,.1)}
+.online-box .join-btn{background:var(--holo)!important;background-size:200% auto!important;animation:titleShine 5s linear infinite;color:#06121f!important;border:none!important;font-weight:700}
+.online-box code{background:rgba(125,240,255,.1);border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--cyan);font-size:11px}
+details.share-fallback{cursor:default}
+details.share-fallback>summary{cursor:pointer;font-family:var(--disp);font-size:13px;letter-spacing:1px;color:var(--sub);list-style:none;padding:2px 0;transition:color .2s}
+details.share-fallback>summary:hover{color:var(--cyan)}
+details.share-fallback>summary::-webkit-details-marker{display:none}
+details.share-fallback>summary::before{content:"▸ ";color:var(--cyan)}
+details.share-fallback[open]>summary::before{content:"▾ "}
+details.share-fallback[open]>summary{margin-bottom:10px}
 
 @media(max-width:520px){
   .groups-grid{grid-template-columns:1fr}
@@ -1269,7 +1280,7 @@ function render(){
   if(modeSwitch) modeSwitch.style.visibility = ui.tab==="league" ? "hidden" : "";
   document.getElementById("btn-random").style.display = (ui.mode==="pred" && ui.tab!=="league") ? "" : "none";
   document.getElementById("modebanner").innerHTML = ui.tab==="league"
-    ? "🏅 <b>友達リーグ</b>：みんなの順位・コイン残高・称号を比較。コードで予想を共有、またはオンライン部屋でリアルタイム対戦。"
+    ? "🏅 <b>友達リーグ</b>：みんなの順位・コイン残高・称号を比較。<b>合言葉を入れるだけ</b>で友達とリアルタイム対戦（コード交換は不要）。"
     : (ui.mode==="pred"
       ? "🔮 <b>予想＆ベット</b>：勝つと思うチーム名（引き分けは「分」）をクリック。さらにコインを賭けるとオッズに応じて増減します（自信があるほど多く賭けよう）。予想を変えれば以降のトーナメントも自動追従。"
       : "📊 <b>実際の結果</b>（閲覧専用）：試合結果は終了後に自動で取得・反映されます（🔄でいつでも更新可）。");
@@ -1655,7 +1666,7 @@ function renderLeague(){
 
   // 順位表
   html += '<div class="league-section"><h3>🏆 リーグ順位表</h3>';
-  html += `<p class="hint" style="margin-bottom:10px">全員${START_COINS}🪙スタート。オッズ付きベットの損益で勝負。並びは<b>コイン残高</b>順（同額は予想得点で比較）。${friendCount===0?"　▶ 下の「共有」か「オンライン部屋」で友達を追加しよう。":""}</p>`;
+  html += `<p class="hint" style="margin-bottom:10px">全員${START_COINS}🪙スタート。オッズ付きベットの損益で勝負。並びは<b>コイン残高</b>順（同額は予想得点で比較）。${friendCount===0?"　▶ 下の<b>「友達と一緒に遊ぶ（オンライン）」</b>で合言葉を入れれば、友達と同じリーグで対戦できます。":""}</p>`;
   html += '<table class="lb"><tr><th>#</th><th class="l">プレイヤー</th><th>🪙残高</th><th>賭け中</th><th>的中率</th><th>予想得点</th><th class="l">称号</th></tr>';
   rows.forEach((r,i)=>{
     const st=r.st, isMe=r.p.self;
@@ -1673,6 +1684,9 @@ function renderLeague(){
     </tr>`;
   });
   html += '</table></div>';
+
+  // オンラインルーム（主役・幹事がconfig設定時のみ表示）
+  html += renderOnlineBox();
 
   // 友達の予想を閲覧
   if(friendCount>0){
@@ -1692,20 +1706,17 @@ function renderLeague(){
     html += '</div>';
   }
 
-  // 共有（コード）— 友達と遊ぶメインの方法
-  html += '<div class="league-section"><h3>🤝 友達と一緒に遊ぶ</h3>';
-  html += `<p class="hint">サーバー不要・登録不要。<b>コードを送り合うだけ</b>で順位表にお互いが反映されます。<br>
-    <b>① </b>右上の名前チップから表示名を設定 → <b>② </b>「自分のコードをコピー」してLINE等で友達に送る → <b>③ </b>友達のコードを下に貼って「取り込む」。<br>
-    予想が固まったタイミングで1回交換すればOK。試合結果は各自の画面で自動更新されるので、以降は勝手に順位が動きます。</p>`;
+  // 共有（コード）— オンラインルームが使えない相手向けの予備（折りたたみ）
+  const codeOpen = !roomEnabled();   // オンライン未設定時のみ最初から開く
+  html += `<details class="league-section share-fallback"${codeOpen?" open":""}><summary>🔗 コードで共有（オフラインの友達向け・予備）</summary>`;
+  html += `<p class="hint">${roomEnabled()?"基本は上の<b>オンラインルーム</b>でOK。ネット接続がない相手とは、コードを送り合っても共有できます。":"<b>コードを送り合うだけ</b>で順位表にお互いが反映されます。"}<br>
+    右上の名前チップで表示名を設定 → 「自分のコードをコピー」して送る → 友達のコードを貼って「取り込む」。</p>`;
   html += `<div class="share-row"><textarea id="my-code" readonly placeholder="「コピー」を押すとここに表示されます（このコードを友達に送る）">${""}</textarea><button onclick="copyShareCode()">📋 自分のコードをコピー</button></div>`;
   html += `<div class="share-row"><textarea id="import-code" placeholder="友達からもらったコード（WC26....）をここに貼り付け"></textarea><button onclick="importShareCode()">📥 取り込む</button></div>`;
   if(friendCount>0){
     html += '<p class="hint" style="margin-top:8px">取り込み済み: ' + players.filter(p=>!p.self).map(p=>`${esc(p.name)} <a href="#" onclick="removeFriend('${safeId(p.id)}');return false" style="color:var(--red)">[外す]</a>`).join("　") + '</p>';
   }
-  html += '</div>';
-
-  // オンラインルーム（幹事がconfig設定時のみ表示）
-  html += renderOnlineBox();
+  html += '</details>';
 
   html += '</div>';
   return html;
@@ -2080,14 +2091,18 @@ function leaveRoom(){
 function renderOnlineBox(){
   if(!roomEnabled()) return "";   // 幹事が未設定ならオンライン欄は出さない
   const on=syncOnline();
-  let html='<div class="league-section"><h3>🌐 オンラインルーム（リアルタイム）</h3>';
+  let html='<div class="league-section online-main"><h3>👥 友達と一緒に遊ぶ（オンライン）</h3>';
   html+='<div class="online-box">';
   if(on){
-    html+=`<div class="row"><span class="online-status on">● 参加中（合言葉: ${esc(state.room.code)}）</span><button onclick="leaveRoom()">退出</button></div>`;
-    html+=`<p class="hint">あなたの予想とベットは自動でこのルームに同期されます。友達が同じ合言葉「<b>${esc(state.room.code)}</b>」で参加すると、上の順位表にリアルタイムで反映されます。コードの送り合いは不要です。</p>`;
+    html+=`<div class="row"><span class="online-status on">● 参加中　合言葉: <b>${esc(state.room.code)}</b></span><button onclick="leaveRoom()">退出する</button></div>`;
+    html+=`<p class="hint">✅ あなたの予想・ベットは自動でこのルームに同期中。<b>友達がこのページのURLを開き、同じ合言葉「${esc(state.room.code)}」で参加</b>すると、上の順位表にリアルタイムで並びます。<br>コードを送り合う必要はありません。友達には「このページのURL」と「合言葉」を伝えるだけ。</p>`;
   } else {
-    html+=`<p class="hint">同じ<b>合言葉</b>を入れた人どうしが、同じリーグで自動同期されます。コードの送り合いは不要。友達には「URL」と「合言葉」を伝えるだけ。</p>`;
-    html+=`<div class="row"><input id="room-code" placeholder="合言葉（例: tomodachi2026）" value="${esc(state.room.code)}"><input id="room-name" placeholder="表示名" value="${esc(state.me.name)}"><button onclick="joinRoom()">🔌 参加する</button></div>`;
+    html+=`<p class="hint"><b>コードの送り合いは不要</b>になりました。同じ<b>合言葉</b>を入れた人どうしが、自動で同じリーグに集まります。<br>
+      <b>① </b>好きな合言葉と表示名を入れて「参加する」（合言葉は自分で決めるだけ・事前登録不要）<br>
+      <b>② </b>友達に「<b>このページのURL</b>」と「<b>同じ合言葉</b>」を伝える<br>
+      <b>③ </b>全員の予想・順位がリアルタイムで自動同期されます</p>`;
+    html+=`<div class="row"><input id="room-code" placeholder="合言葉（自分で決める／例: bambam-cup-7h3k）" value="${esc(state.room.code)}"><input id="room-name" placeholder="あなたの表示名" value="${esc(state.me.name)}"><button class="join-btn" onclick="joinRoom()">🔌 参加する</button></div>`;
+    html+=`<p class="hint" style="font-size:11px">※ <code>test</code> や <code>worldcup</code> など定番ワードは他人と被る恐れあり。<b>苗字＋好きな数字</b>のような独自の合言葉にしてください。</p>`;
   }
   html+='</div></div>';
   return html;
