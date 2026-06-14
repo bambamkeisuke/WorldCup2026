@@ -911,8 +911,7 @@ function ensureLeague(){
   if(!state.bets.ko) state.bets.ko = {};
   if(!state.me) state.me = {id:null, name:"", color:PLAYER_COLORS[0]};
   if(typeof state.account!=="string") state.account = "";
-  if(state.account){ state.me.id = "u_"+state.account; }   // ログイン中は端末をまたいで同じ所有者IDに
-  else if(!state.me.id){ state.me.id = uid(); }
+  if(!state.me.id){ state.me.id = uid(); }
   if(!state.me.color) state.me.color = PLAYER_COLORS[0];
   if(typeof state.me.avatar!=="string") state.me.avatar = "";
   if(!state.room) state.room = {code:"", fb:null};
@@ -2576,7 +2575,7 @@ async function startSync(){
   let fbApp; try{ fbApp=app.getApp(appName); }catch(_){ fbApp=app.initializeApp(ROOM_CONFIG,appName); }
   const a=auth.getAuth(fbApp);
   const cred=await auth.signInAnonymously(a);
-  if(!state.account) state.me.id=cred.user.uid;  // 未ログイン時のみ匿名UIDを所有者IDに（ログイン中は端末共通IDを維持）
+  state.me.id=cred.user.uid;                 // 所有者＝自分の認証UID
   const db=fs.getFirestore(fbApp);
   _sync.db=db; _sync.fs=fs; _sync.ready=true;
   await syncPush();
@@ -2662,15 +2661,10 @@ async function accountLogin(){
   const v=((document.getElementById("acct-code")||{}).value||"");
   const code=v.trim().replace(/[^A-Za-z0-9_-]/g,"_").slice(0,60);
   if(code.length<4){ alert("ログインコードは英数字・-・_ で4文字以上にしてください。"); return; }
-  // 既にルーム参加中なら、旧IDのゴーストプレイヤーを掃除
-  if(_sync.ready && _sync.fs && _sync.db && state.room && state.room.code){
-    try{ await _sync.fs.deleteDoc(_sync.fs.doc(_sync.db,"rooms",state.room.code,"players",state.me.id)); }catch(_){}
-  }
-  state.account=code; state.me.id="u_"+code; save();
+  state.account=code; save();
   setFetchStatus("アカウントにログイン中…","loading");
   try{
     await startAccountSync();
-    if(state.room && state.room.code){ await startSync(); }   // ルームも新IDで再接続
     setFetchStatus("ログインしました","ok");
   }catch(e){ console.error(e); let msg=(e&&e.message)||e;
     if(/operation-not-allowed|admin-restricted|configuration-not-found/.test((e&&e.code)||"")) msg="Firebaseの「匿名ログイン」が有効になっていません。";
@@ -2681,7 +2675,7 @@ function accountLogout(){
   if(!confirm("ログアウトしますか？\nこの端末に予想は残りますが、他の端末との自動同期は止まります。")) return;
   if(_acct.unsub){ _acct.unsub(); _acct.unsub=null; }
   _acct.ready=false; _acct.db=null;
-  state.account=""; state.me.id=uid();
+  state.account="";
   save(); refreshSettings(); render();
   setFetchStatus("ログアウトしました","none");
 }
