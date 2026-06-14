@@ -879,10 +879,14 @@ function setGroupScore(n, side, val){
   if(ui.mode!=="pred") return;
   const v = val==="" ? null : Math.max(0, Math.min(99, parseInt(val,10)));
   let s = state.pred.group[n] || {};
+  const wasComplete = Number.isInteger(s.h) && Number.isInteger(s.a);
   s[side] = Number.isInteger(v) ? v : null;
+  const nowComplete = Number.isInteger(s.h) && Number.isInteger(s.a);
   if(s.h==null && s.a==null && !s.o) delete state.pred.group[n];
   else state.pred.group[n]=s;
   save(); render();
+  // スコアが揃って勝敗が自動確定したら祝福（既に完成済みの微修正では出さない）
+  if(nowComplete && !wasComplete) celebratePick();
 }
 function setOutcome(n, o){
   if(ui.mode!=="pred") return;
