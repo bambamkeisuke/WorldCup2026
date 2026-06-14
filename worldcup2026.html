@@ -249,7 +249,7 @@ img.flag{width:20px;height:14px;object-fit:cover;border-radius:3px;vertical-alig
 .third-chip .rank{color:var(--sub);font-size:10px;margin-right:4px}
 .hint{font-size:12px;color:var(--sub);margin:6px 0 12px;line-height:1.8}
 /* bracket */
-.bracket-wrap{overflow:auto;max-height:74vh;padding-bottom:10px;cursor:grab;position:relative;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.bracket-wrap{overflow:auto;max-height:74vh;padding-bottom:10px;cursor:grab;position:relative;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scroll-snap-type:x proximity;scroll-padding-left:14px}
 .bracket-wrap.grabbing{cursor:grabbing;user-select:none}
 .bracket-sizer{position:relative}
 .bracket{display:flex;gap:22px;min-width:1280px;position:relative;transform-origin:0 0;will-change:transform}
@@ -260,7 +260,12 @@ svg.bracket-svg{position:absolute;inset:0;pointer-events:none;z-index:0;overflow
 .bracket-line{fill:none;stroke:#7df0ff;stroke-width:1.5;opacity:.42;stroke-dasharray:5 8;
   animation:flowDash .9s linear infinite;filter:drop-shadow(0 0 3px rgba(125,240,255,.7))}
 @keyframes flowDash{to{stroke-dashoffset:-13}}
-.round{display:flex;flex-direction:column;min-width:215px;flex:1;position:relative;z-index:1}
+.round{display:flex;flex-direction:column;min-width:215px;flex:1;position:relative;z-index:1;scroll-snap-align:start}
+.ko-rounds{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 10px;padding-bottom:2px;scrollbar-width:none}
+.ko-rounds::-webkit-scrollbar{display:none}
+.ko-rounds button{flex:0 0 auto;background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:99px;padding:6px 14px;font-size:12px;font-weight:700;font-family:var(--disp);letter-spacing:1px;cursor:pointer;white-space:nowrap;transition:all .2s}
+.ko-rounds button:hover{color:var(--text);border-color:rgba(125,240,255,.5)}
+.ko-rounds button.on{background:var(--holo);background-size:200% auto;animation:titleShine 6s linear infinite;color:#06121f;border-color:transparent;box-shadow:0 0 16px rgba(125,240,255,.35)}
 .round h4{
   text-align:center;font-family:var(--disp);font-size:14px;letter-spacing:2.5px;padding:6px 0 8px;position:sticky;top:0;
   background:var(--holo);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleShine 7s linear infinite;
@@ -1581,7 +1586,7 @@ function render(){
     return;
   }
   if(ui.tab==="groups") app.innerHTML = renderGroups();
-  else if(ui.tab==="ko"){ app.innerHTML = renderKO(); _koNatW=0; applyKoZoom(_koZoom,false); setTimeout(()=>{_koNatW=0;applyKoZoom(_koZoom,false);}, 260); }
+  else if(ui.tab==="ko"){ app.innerHTML = renderKO(); _koNatW=0; applyKoZoom(_koZoom,false); initKoRoundNav(); setTimeout(()=>{_koNatW=0;applyKoZoom(_koZoom,false);initKoRoundNav();}, 260); }
   else if(ui.tab==="cal") app.innerHTML = renderSchedule();
   else if(ui.tab==="league") app.innerHTML = renderLeague();
   else app.innerHTML = renderCmp();
@@ -1900,7 +1905,9 @@ function renderKO(){
   ];
   let html = `<p class="hint">${track==="pred"
     ? "勝ち上がると思うチームをクリック。グループ予想を変えると組み合わせも自動更新され、選択は枠単位で引き継がれます。"
-    : "実際のトーナメント結果（自動取得・閲覧専用）。結果が揃うと組み合わせが確定し、勝ち上がりが反映されます。"}　🖐 ドラッグで移動／ ＋− で拡大縮小。</p>`;
+    : "実際のトーナメント結果（自動取得・閲覧専用）。結果が揃うと組み合わせが確定し、勝ち上がりが反映されます。"}　👆 ラウンドをタップ／スワイプで移動。</p>`;
+  const navLabels = ["R32","R16","QF","SF","FINAL"];
+  html += '<div class="ko-rounds" id="ko-rounds">'+navLabels.map((l,i)=>`<button onclick="koGoRound(${i})">${l}</button>`).join("")+'</div>';
   html += '<div class="zoom-ctrl"><button onclick="zoomKo(-0.15)" title="縮小">－</button><button onclick="fitKo()" title="全体表示">FIT</button><button onclick="zoomKo(0.15)" title="拡大">＋</button></div>';
   html += '<div class="bracket-wrap" id="bracket-wrap"><div class="bracket-sizer" id="bracket-sizer"><div class="bracket">';
   for(const [title, ms] of roundsEn){
@@ -2422,6 +2429,48 @@ function applyKoZoom(z, keepCenter){
   drawBracketLines();
 }
 function zoomKo(d){ applyKoZoom(_koZoom+d); }
+/* ===== ラウンドセレクター（Apple Sports風のラウンド移動／スクロール連動） ===== */
+function koRoundEls(){ const w=document.getElementById("bracket-wrap"); return w ? [...w.querySelectorAll(".round")] : []; }
+function setKoActiveRound(i){ const bar=document.getElementById("ko-rounds"); if(!bar) return; [...bar.children].forEach((b,j)=>b.classList.toggle("on", j===i)); }
+let _koAnim=0;
+function koAnimateScroll(wrap, to, dur){
+  if(_koAnim) cancelAnimationFrame(_koAnim);
+  to=Math.max(0, Math.min(to, wrap.scrollWidth - wrap.clientWidth));
+  const from=wrap.scrollLeft, dist=to-from, t0=performance.now();
+  if(Math.abs(dist)<1){ wrap.scrollLeft=to; return; }
+  const ease=p=>1-Math.pow(1-p,3);   // easeOutCubic（Apple風の減速）
+  (function step(now){
+    const p=Math.min(1,(now-t0)/(dur||420));
+    wrap.scrollLeft=from+dist*ease(p);
+    _koAnim = p<1 ? requestAnimationFrame(step) : 0;
+  })(t0);
+}
+function koGoRound(i){
+  const wrap=document.getElementById("bracket-wrap"); const els=koRoundEls();
+  if(!wrap||!els[i]) return;
+  const wr=wrap.getBoundingClientRect(), rr=els[i].getBoundingClientRect();
+  koAnimateScroll(wrap, wrap.scrollLeft + (rr.left - wr.left) - 14, 430);
+  setKoActiveRound(i);
+}
+function updateKoActiveOnScroll(){
+  const wrap=document.getElementById("bracket-wrap"); const els=koRoundEls();
+  if(!wrap||!els.length) return;
+  const ref=wrap.getBoundingClientRect().left + 20;   // 左端付近のラウンドを「現在地」とみなす
+  let best=0, bestD=Infinity;
+  els.forEach((el,i)=>{ const d=Math.abs(el.getBoundingClientRect().left - ref); if(d<bestD){ bestD=d; best=i; } });
+  setKoActiveRound(best);
+}
+let _koScrollRAF=0;
+function initKoRoundNav(){
+  const wrap=document.getElementById("bracket-wrap"); if(!wrap) return;
+  updateKoActiveOnScroll();
+  if(wrap._koNavBound) return;     // 再描画でwrapは作り直されるので二重登録なし
+  wrap._koNavBound=true;
+  wrap.addEventListener("scroll",()=>{
+    if(_koScrollRAF) return;
+    _koScrollRAF=requestAnimationFrame(()=>{ _koScrollRAF=0; updateKoActiveOnScroll(); });
+  }, {passive:true});
+}
 function fitKo(silent){
   const bracket=document.querySelector(".bracket"), wrap=document.getElementById("bracket-wrap");
   if(!bracket||!wrap) return;
@@ -2433,9 +2482,10 @@ function fitKo(silent){
 // ドラッグでパン
 let _panActive=false,_panX=0,_panY=0,_panSL=0,_panST=0;
 document.addEventListener("pointerdown",e=>{
+  if(e.pointerType && e.pointerType!=="mouse") return;   // タッチ/ペンは慣性＋スナップのネイティブスクロールに任せる
   const wrap=e.target.closest && e.target.closest("#bracket-wrap");
   if(!wrap) return;
-  if(e.target.closest(".ko-team.clickable")||e.target.closest(".zoom-ctrl")||e.target.closest("input,button")) return;
+  if(e.target.closest(".ko-team.clickable")||e.target.closest(".zoom-ctrl")||e.target.closest(".ko-rounds")||e.target.closest("input,button")) return;
   _panActive=true; _panX=e.clientX;_panY=e.clientY;_panSL=wrap.scrollLeft;_panST=wrap.scrollTop;
   wrap.classList.add("grabbing");
 });
