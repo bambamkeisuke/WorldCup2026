@@ -448,7 +448,7 @@ footer{
 .cal-fx.jp{background:rgba(255,93,122,.18)}
 .cal-fxs .flag{width:15px;height:11px;margin:0;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
 .cal-x{font-size:7px;color:var(--sub);margin:0 1px}
-.cal-q{font-size:9px;color:var(--sub);width:15px;text-align:center;display:inline-block}
+.cal-rd{font-size:8px;font-weight:700;color:var(--cyan);background:rgba(125,240,255,.08);border:1px solid rgba(125,240,255,.25);border-radius:4px;padding:1px 3px;line-height:1.2;text-align:center;white-space:normal;word-break:keep-all;max-width:100%}
 @media(max-width:520px){ .cal-month{flex:1 1 100%} .cal-cell{font-size:11px} .cal-fxs .flag{width:14px;height:10px} }
 @media(max-width:520px){
   .cal-row{grid-template-columns:1fr auto;gap:6px}
@@ -1695,6 +1695,15 @@ const BROADCAST_CLS = {"NHK":"bc-nhk","日テレ":"bc-ntv","フジ":"bc-fuji","D
 function broadcastHTML(m, ko){
   return broadcastFor(m,ko).map(c=>`<span class="bc ${BROADCAST_CLS[c]||""}">${c}</span>`).join("");
 }
+function koRoundLabel(m){
+  if(m.n===DATA.final.n) return "決勝";
+  if(m.n===DATA.thirdPlace.n) return "3位決定戦";
+  if(DATA.sf.some(x=>x.n===m.n)) return "準決勝";
+  if(DATA.qf.some(x=>x.n===m.n)) return "準々決勝";
+  if(DATA.r16.some(x=>x.n===m.n)) return "ベスト16";
+  if(DATA.r32.some(x=>x.n===m.n)) return "ベスト32";
+  return "決勝T";
+}
 function jstDateKey(m){
   const utc=KICKOFF[m.n]; if(!utc) return m.date||"";
   return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(utc)); // YYYY-MM-DD
@@ -1777,12 +1786,14 @@ function renderMonthGrid(ym, byDay, todayKey){
     if(ms.length){
       fx='<div class="cal-fxs">'+ms.map(x=>{
         const m=x.m; let h,a;
-        if(x.ko){ h=slotTeam("actual",m,"home")||slotTeam("pred",m,"home"); a=slotTeam("actual",m,"away")||slotTeam("pred",m,"away"); }
+        if(x.ko){ h=slotTeam("actual",m,"home"); a=slotTeam("actual",m,"away"); }  // 実結果で確定したカードのみ
         else { h=m.home; a=m.away; }
+        // KOで対戦カード未確定はラウンド名を表示（確定したら国旗に自動反映）
+        if(x.ko && !(h&&a)){
+          return `<span class="cal-rd" title="${koRoundLabel(m)}（対戦カード未定）">${koRoundLabel(m)}</span>`;
+        }
         const isJp = h==="Japan"||a==="Japan";
-        const fh = h?teamFlag(h):'<span class="cal-q">?</span>';
-        const fa = a?teamFlag(a):'<span class="cal-q">?</span>';
-        return `<span class="cal-fx${isJp?" jp":""}" title="${h?esc(teamJa(h)):"未定"} vs ${a?esc(teamJa(a)):"未定"}">${fh}<span class="cal-x">v</span>${fa}</span>`;
+        return `<span class="cal-fx${isJp?" jp":""}" title="${esc(teamJa(h))} vs ${esc(teamJa(a))}">${teamFlag(h)}<span class="cal-x">v</span>${teamFlag(a)}</span>`;
       }).join("")+'</div>';
     }
     const onclick = ms.length?` onclick="selectCalDay('${key}')"`:"";
