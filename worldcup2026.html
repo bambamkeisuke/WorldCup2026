@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://*.googleapis.com https://site.api.espn.com; img-src 'self' data: https://flagcdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FIFA ワールドカップ 2026 予想シミュレーター</title>
 <style>
@@ -899,6 +900,18 @@ function cleanBets(src){
       if(o.side==="home"||o.side==="away") e.side=o.side; out.ko[n]=e; } }
   return out;
 }
+// 取り込んだ「実際の結果」をプリミティブのみに再構築（数値・列挙値のみ）
+function cleanActual(src){
+  const out={group:{},ko:{}}; src=src||{};
+  const g=src.group||{};
+  for(const n in g){ if(!/^\d+$/.test(n))continue; const s=g[n]||{};
+    if(Number.isInteger(s.h)&&Number.isInteger(s.a)) out.group[n]={h:Math.max(0,Math.min(99,s.h)),a:Math.max(0,Math.min(99,s.a))}; }
+  const k=src.ko||{};
+  for(const n in k){ if(!/^\d+$/.test(n))continue; const s=k[n]||{};
+    if(Number.isInteger(s.h)&&Number.isInteger(s.a)){ const e={h:Math.max(0,Math.min(99,s.h)),a:Math.max(0,Math.min(99,s.a)),pk:null};
+      if(s.pk==="home"||s.pk==="away") e.pk=s.pk; out.ko[n]=e; } }
+  return out;
+}
 function sanitizeAvatar(s){
   s=String(s==null?"":s);
   if(/^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/.test(s)) return s.slice(0,200000); // アップロード写真
@@ -1526,8 +1539,27 @@ function importData(input){
   fr.onload = ()=>{
     try{
       const s = JSON.parse(fr.result);
-      if(!s.pred || !s.actual) throw new Error("形式が不正です");
-      state = s; save(); render();
+      if(!s || typeof s!=="object" || !s.pred || !s.actual) throw new Error("形式が不正です");
+      // 取り込みデータをホワイトリストで再構築（任意フィールド・不正値・汚染を遮断）
+      const next = {
+        pred: cleanPred(s.pred),
+        bets: cleanBets(s.bets),
+        actual: cleanActual(s.actual),
+        me: {
+          id: safeId(s.me&&s.me.id) || uid(),
+          name: (s.me&&s.me.name) ? sanitizeName(s.me.name).slice(0,16) : "",
+          color: safeColor(s.me&&s.me.color),
+          avatar: sanitizeAvatar(s.me&&s.me.avatar)
+        },
+        room: {code:"", fb:null},   // 取り込みでオンライン接続は引き継がない（安全側）
+        account: "",
+        players: {},
+        celebratedHits: Array.isArray(s.celebratedHits) ? s.celebratedHits.filter(Number.isInteger).slice(0,500) : []
+      };
+      if(s.players && typeof s.players==="object"){
+        for(const k in s.players){ const c=cleanIncomingPlayer(s.players[k]); if(c) next.players[c.id]=c; }
+      }
+      state = next; ensureLeague(); save(); render();
       alert("読み込みました。");
     }catch(e){ alert("読み込みに失敗しました: "+e.message); }
   };
