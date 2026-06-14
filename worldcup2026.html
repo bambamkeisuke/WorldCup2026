@@ -90,6 +90,11 @@ h1 .jst{font-size:10.5px;color:var(--cyan);border:1px solid rgba(125,240,255,.4)
 .toolbar button:hover{border-color:rgba(125,240,255,.6);box-shadow:0 0 16px rgba(125,240,255,.22);transform:translateY(-1px);color:var(--cyan)}
 .ico{width:15px;height:15px;margin-right:7px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.92;transition:filter .2s}
 .toolbar button:hover .ico{filter:drop-shadow(0 0 5px rgba(125,240,255,.8))}
+.sico{display:inline-block;width:14px;height:14px;margin-right:5px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
+.sico.ok{stroke:var(--green);filter:drop-shadow(0 0 5px rgba(59,255,176,.55))}
+.sico.warn{stroke:#ff9166;filter:drop-shadow(0 0 5px rgba(255,145,102,.5))}
+.sico.spin{stroke:var(--cyan);animation:spin .9s linear infinite;transform-origin:50% 50%}
+@keyframes spin{to{transform:rotate(360deg)}}
 .tabs{display:flex;gap:4px;margin:12px 0 12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px}
 .tabs button{
   background:none;border:none;color:var(--sub);padding:9px 20px;cursor:pointer;font-size:13.5px;
@@ -1173,9 +1178,15 @@ const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""
 const NAME_ALIAS = {"czechia":"czechrepublic","bosniaherzegovina":"bosniaandherzegovina","turkiye":"turkey","usa":"unitedstates","korearepublic":"southkorea","cotedivoire":"ivorycoast","caboverde":"capeverde","congodr":"drcongo","democraticrepublicofthecongo":"drcongo","iriran":"iran","republicofireland":"ireland"};
 const cnorm = s => { const x = norm(s); return NAME_ALIAS[x] || x; };
 const pairKey = (a,b) => [cnorm(a),cnorm(b)].sort().join("|");
-function setFetchStatus(msg){ const el = document.getElementById("fetch-status"); if(el) el.textContent = msg; }
+const _STATUS_ICO={
+  ok:'<svg class="sico ok" viewBox="0 0 24 24"><path d="M4 13l5 5L20 6"/></svg>',
+  loading:'<svg class="sico spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3.5v5h-5"/></svg>',
+  warn:'<svg class="sico warn" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 10v4.5M12 17.4v.1"/></svg>',
+  none:''
+};
+function setFetchStatus(msg, type){ const el=document.getElementById("fetch-status"); if(el) el.innerHTML=(_STATUS_ICO[type]||"")+esc(msg||""); }
 async function fetchResults(manual){
-  setFetchStatus("🔄 結果を取得中…");
+  setFetchStatus("結果を取得中…", "loading");
   try{
     const r = await fetch("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=200");
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -1222,9 +1233,9 @@ async function fetchResults(manual){
     }
     save(); render();
     const t = new Intl.DateTimeFormat("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit"}).format(new Date());
-    setFetchStatus(applied>0 ? `✅ ${applied}試合の結果を反映（${t} 確認）` : `✅ 終了済みの試合はまだありません（${t} 確認）`);
+    setFetchStatus(applied>0 ? `${applied}試合の結果を反映（${t} 確認）` : `終了済みの試合はまだありません（${t} 確認）`, "ok");
   }catch(err){
-    setFetchStatus("⚠️ 自動取得に失敗（オフライン時は手入力できます）");
+    setFetchStatus("自動取得に失敗（オフライン時は手入力できます）", "warn");
     if(manual) alert("結果の自動取得に失敗しました: " + err.message);
   }
 }
@@ -1628,7 +1639,7 @@ function myShareCode(){
 function copyShareCode(){
   const code=myShareCode();
   navigator.clipboard?.writeText(code).then(
-    ()=>setFetchStatus("✅ 共有コードをコピーしました"),
+    ()=>setFetchStatus("共有コードをコピーしました", "ok"),
     ()=>{ const ta=document.getElementById("my-code"); if(ta){ta.value=code; ta.select();} }
   );
   const ta=document.getElementById("my-code"); if(ta) ta.value=code;
@@ -2060,7 +2071,7 @@ async function startSync(){
     });
     localStorage.setItem(LS_KEY, JSON.stringify(state));
     if(ui.tab==="league") render(); else updatePlayerChip();
-  },(err)=>{ console.warn("onSnapshot",err); setFetchStatus("⚠️ オンライン同期エラー（接続/ルールを確認）"); });
+  },(err)=>{ console.warn("onSnapshot",err); setFetchStatus("オンライン同期エラー（接続/ルールを確認）", "warn"); });
 }
 async function syncPush(){
   if(!_sync.ready || !_sync.db) return;
@@ -2076,8 +2087,8 @@ async function joinRoom(){
   if(!code){ alert("合言葉（部屋コード）を入力してください。"); return; }
   if(name) state.me.name=sanitizeName(name).slice(0,16);
   state.room.code=code; save();
-  setFetchStatus("🌐 ルームに参加中…");
-  try{ await startSync(); setFetchStatus("✅ ルームに参加しました"); }
+  setFetchStatus("ルームに参加中…", "loading");
+  try{ await startSync(); setFetchStatus("ルームに参加しました", "ok"); }
   catch(e){ console.error(e); const c=(e&&e.code)||"";
     let msg=(e&&e.message)||e;
     if(/operation-not-allowed|admin-restricted|configuration-not-found/.test(c)) msg="Firebaseの「匿名ログイン」が有効になっていません。";
