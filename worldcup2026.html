@@ -263,6 +263,17 @@ footer{
 .bet-bar.ko .bet-ctrl button{padding:2px 6px;font-size:10px}
 .bet-bar.ko .payout{font-size:10.5px}
 
+/* ===== 表示切替（グループ別 / 日程順） ===== */
+.view-toggle{display:inline-flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:14px}
+.view-toggle button{background:none;border:none;color:var(--sub);padding:7px 16px;border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:700;font-family:inherit;transition:all .2s}
+.view-toggle button:hover{color:var(--text)}
+.view-toggle button.on{background:var(--gold-grad);color:#221500;box-shadow:0 2px 14px rgba(255,193,77,.4)}
+.bydate-list{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:8px 14px 14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.bydate-list::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold-grad);opacity:.6}
+.day-header{font-family:var(--disp);font-size:14px;letter-spacing:1px;color:var(--accent);margin:16px 0 2px;padding-bottom:5px;border-bottom:1px solid rgba(255,209,102,.25);display:flex;align-items:center;gap:6px}
+.day-header:first-child{margin-top:4px}
+.gtag{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:5px;font-size:9px;font-weight:700;padding:0 4px;margin-right:3px;font-family:var(--disp);vertical-align:1px}
+
 /* ===== リーグタブ ===== */
 .league-wrap{display:flex;flex-direction:column;gap:18px}
 .league-section{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px 18px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:relative;overflow:hidden}
@@ -631,7 +642,7 @@ let state = {
   room:{code:"", fb:null},    // fb: firebaseConfig（オンライン時のみ）
   players:{}                  // 友達のスナップショット {[id]:{name,color,pred,bets,ts}}
 };
-let ui = {tab:"groups", mode:"pred", viewPlayer:null};
+let ui = {tab:"groups", mode:"pred", viewPlayer:null, groupView:"byGroup"};
 function ensureLeague(){
   if(!state.bets) state.bets = {group:{},ko:{}};
   if(!state.bets.group) state.bets.group = {};
@@ -1119,54 +1130,29 @@ function renderGroups(){
   const qualThirds = ranking.length ? new Set(ranking.slice(0,8).map(x=>x.group)) : null;
   const entered = DATA.groupMatches.filter(m=>matchEntry(track,m.n).o).length;
   let html = `<p class="hint">${track==="pred"?"予想(勝敗)入力済み":"結果反映済み"}: ${entered} / ${DATA.groupMatches.length} 試合　<span style="color:var(--green)">■</span> 上位2チーム＝決勝T進出　<span style="color:var(--accent)">■</span> 3位通過圏内(暫定)　🕐 日時はすべて日本時間(JST)<br>予想の判定マーク: <span class="judge exact">◎</span>=スコアまで的中(+3点) <span class="judge outcome">○勝敗</span>=勝敗のみ的中(+1点) <span class="judge miss">×</span>=ハズレ</p>`;
-  html += '<div class="groups-grid">';
-  for(const g of Object.keys(DATA.groups)){
-    const st = standings(track,g);
-    html += `<div class="group-card"><h3>グループ ${g}</h3>`;
-    html += '<table class="standings"><tr><th></th><th class="tname">チーム</th><th>試</th><th>勝点</th><th>得失</th><th>総得</th></tr>';
-    st.forEach((r,idx)=>{
-      let cls = idx<2 ? "q1" : (idx===2 && qualThirds && qualThirds.has(g) ? "q3" : "");
-      html += `<tr class="${cls}"><td>${idx+1}</td><td class="tname">${teamHTML(r.id)}</td><td>${r.played}</td><td><b>${r.pts}</b></td><td>${r.gd>0?"+":""}${r.gd}</td><td>${r.gf}</td></tr>`;
-    });
-    html += '</table>';
-    for(const m of groupMatchesOf(g)){
-      const e = matchEntry(track, m.n);
-      let otherInfo = "";
-      if(track==="pred"){
-        const act = getGroupScore("actual", m.n);
-        if(act){
-          otherInfo = `結果 ${act.h}-${act.a}` + (e.o ? " " + JUDGE_ICON[judgeMatch(e,act)] : "");
-        }
-      } else {
-        const pe = matchEntry("pred", m.n);
-        if(pe.o) otherInfo = `予想 ${outcomeText(m,pe)}`;
-      }
-      if(track==="pred"){
-        html += `<div class="match-block"><div class="match-row">
-          <span class="date">${fmtJST(m,true)}</span>
-          <span class="home oc-name ${e.o==="h"?"sel":""}" onclick="setOutcome(${m.n},'h')" title="${teamJa(m.home)}の勝利を予想">${teamHTMLHome(m.home)}</span>
-          <span class="oc-mid">
-            <input type="number" min="0" max="99" placeholder="-" value="${e.h!==null?e.h:""}" onchange="setGroupScore(${m.n},'h',this.value)" title="スコア予想（任意）">
-            <button class="oc-btn ${e.o==="d"?"sel":""}" onclick="setOutcome(${m.n},'d')" title="引き分けを予想">分</button>
-            <input type="number" min="0" max="99" placeholder="-" value="${e.a!==null?e.a:""}" onchange="setGroupScore(${m.n},'a',this.value)" title="スコア予想（任意）">
-          </span>
-          <span class="away oc-name ${e.o==="a"?"sel":""}" onclick="setOutcome(${m.n},'a')" title="${teamJa(m.away)}の勝利を予想">${teamHTML(m.away)}</span>
-          <span class="other-info">${otherInfo}</span>
-        </div>${betBarGroup(m, e)}</div>`;
-      } else {
-        const sc = e.h!==null ? `${e.h} - ${e.a}` : '<span style="color:var(--sub)">未</span>';
-        html += `<div class="match-row">
-          <span class="date">${fmtJST(m,true)}</span>
-          <span class="home">${teamHTMLHome(m.home)}</span>
-          <span class="score-txt">${sc}</span>
-          <span class="away">${teamHTML(m.away)}</span>
-          <span class="other-info">${otherInfo}</span>
-        </div>`;
-      }
+  // 表示切替：グループ別 / 日程順
+  html += `<div class="view-toggle">
+    <button class="${ui.groupView!=="byDate"?"on":""}" onclick="setGroupView('byGroup')">📊 グループ別</button>
+    <button class="${ui.groupView==="byDate"?"on":""}" onclick="setGroupView('byDate')">📅 日程順</button>
+  </div>`;
+  if(ui.groupView==="byDate"){
+    html += renderGroupsByDate(track);
+  } else {
+    html += '<div class="groups-grid">';
+    for(const g of Object.keys(DATA.groups)){
+      const st = standings(track,g);
+      html += `<div class="group-card"><h3>グループ ${g}</h3>`;
+      html += '<table class="standings"><tr><th></th><th class="tname">チーム</th><th>試</th><th>勝点</th><th>得失</th><th>総得</th></tr>';
+      st.forEach((r,idx)=>{
+        let cls = idx<2 ? "q1" : (idx===2 && qualThirds && qualThirds.has(g) ? "q3" : "");
+        html += `<tr class="${cls}"><td>${idx+1}</td><td class="tname">${teamHTML(r.id)}</td><td>${r.played}</td><td><b>${r.pts}</b></td><td>${r.gd>0?"+":""}${r.gd}</td><td>${r.gf}</td></tr>`;
+      });
+      html += '</table>';
+      for(const m of groupMatchesOf(g)) html += groupMatchRow(m, track, false);
+      html += '</div>';
     }
     html += '</div>';
   }
-  html += '</div>';
   // 3位ランキング
   const complete = allGroupsComplete(track);
   html += '<div class="thirds-panel"><h3>各グループ3位チーム ランキング（上位8チームが決勝T進出）</h3>';
@@ -1179,6 +1165,62 @@ function renderGroups(){
     html += '</div>';
   } else {
     html += `<p class="hint">${track==="pred"?"予想を入力":"試合結果が反映"}されると、3位チームの暫定ランキングが表示されます。</p>`;
+  }
+  html += '</div>';
+  return html;
+}
+function setGroupView(v){ ui.groupView=v; render(); }
+function kickoffTime(n){ const k=KICKOFF[n]; return k ? new Date(k).getTime() : 0; }
+function jstDayLabel(m){
+  const utc = KICKOFF[m.n];
+  if(!utc) return fmtDate(m.date);
+  const p = new Intl.DateTimeFormat("ja-JP",{timeZone:"Asia/Tokyo",year:"numeric",month:"numeric",day:"numeric",weekday:"short"}).formatToParts(new Date(utc));
+  const g = t => (p.find(x=>x.type===t)||{}).value || "";
+  return `${g("month")}/${g("day")}（${g("weekday")}）`;
+}
+// 1試合分の予想/結果行（グループ別・日程順の両ビューで共用）。showGroupで組タグを表示。
+function groupMatchRow(m, track, showGroup){
+  const e = matchEntry(track, m.n);
+  const gtag = showGroup ? `<span class="gtag">${m.group}</span>` : "";
+  let otherInfo = "";
+  if(track==="pred"){
+    const act = getGroupScore("actual", m.n);
+    if(act) otherInfo = `結果 ${act.h}-${act.a}` + (e.o ? " " + JUDGE_ICON[judgeMatch(e,act)] : "");
+  } else {
+    const pe = matchEntry("pred", m.n);
+    if(pe.o) otherInfo = `予想 ${outcomeText(m,pe)}`;
+  }
+  if(track==="pred"){
+    return `<div class="match-block"><div class="match-row">
+      <span class="date">${gtag}${fmtJST(m,true)}</span>
+      <span class="home oc-name ${e.o==="h"?"sel":""}" onclick="setOutcome(${m.n},'h')" title="${teamJa(m.home)}の勝利を予想">${teamHTMLHome(m.home)}</span>
+      <span class="oc-mid">
+        <input type="number" min="0" max="99" placeholder="-" value="${e.h!==null?e.h:""}" onchange="setGroupScore(${m.n},'h',this.value)" title="スコア予想（任意）">
+        <button class="oc-btn ${e.o==="d"?"sel":""}" onclick="setOutcome(${m.n},'d')" title="引き分けを予想">分</button>
+        <input type="number" min="0" max="99" placeholder="-" value="${e.a!==null?e.a:""}" onchange="setGroupScore(${m.n},'a',this.value)" title="スコア予想（任意）">
+      </span>
+      <span class="away oc-name ${e.o==="a"?"sel":""}" onclick="setOutcome(${m.n},'a')" title="${teamJa(m.away)}の勝利を予想">${teamHTML(m.away)}</span>
+      <span class="other-info">${otherInfo}</span>
+    </div>${betBarGroup(m, e)}</div>`;
+  }
+  const sc = e.h!==null ? `${e.h} - ${e.a}` : '<span style="color:var(--sub)">未</span>';
+  return `<div class="match-row">
+    <span class="date">${gtag}${fmtJST(m,true)}</span>
+    <span class="home">${teamHTMLHome(m.home)}</span>
+    <span class="score-txt">${sc}</span>
+    <span class="away">${teamHTML(m.away)}</span>
+    <span class="other-info">${otherInfo}</span>
+  </div>`;
+}
+// 日程順ビュー：全グループ戦をキックオフ時刻順に、日付ごとに区切って表示
+function renderGroupsByDate(track){
+  const matches = DATA.groupMatches.slice().sort((a,b)=> kickoffTime(a.n)-kickoffTime(b.n) || a.n-b.n);
+  let html = '<div class="bydate-list">';
+  let lastDay = "";
+  for(const m of matches){
+    const day = jstDayLabel(m);
+    if(day!==lastDay){ html += `<div class="day-header">📅 ${day}</div>`; lastDay = day; }
+    html += groupMatchRow(m, track, true);
   }
   html += '</div>';
   return html;
